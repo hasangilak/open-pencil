@@ -51,7 +51,9 @@ export const PACKAGE_ALIASES: Record<string, string> = {
   '#cli/': 'packages/cli/src/',
   '#mcp/': 'packages/mcp/src/',
   '#feedback/': 'packages/feedback/src/',
-  '#feedback-tests/': 'packages/feedback/tests/'
+  '#feedback-tests/': 'packages/feedback/tests/',
+  '#cloud/': 'packages/cloud/src/',
+  '#cloud-tests/': 'packages/cloud/tests/'
 }
 
 export const PACKAGE_ALIAS_OWNERS: Record<string, string> = {
@@ -66,7 +68,9 @@ export const PACKAGE_ALIAS_OWNERS: Record<string, string> = {
   '#cli/': 'packages/cli/',
   '#mcp/': 'packages/mcp/src/',
   '#feedback/': 'packages/feedback/',
-  '#feedback-tests/': 'packages/feedback/tests/'
+  '#feedback-tests/': 'packages/feedback/tests/',
+  '#cloud/': 'packages/cloud/',
+  '#cloud-tests/': 'packages/cloud/tests/'
 }
 
 function normalizePath(filePath: string) {
