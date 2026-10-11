@@ -21,7 +21,7 @@ import { createMFAAssuranceService } from './mfa-assurance'
 
 const APPLE_AUDIENCE = 'https://appleid.apple.com'
 const APPLE_SECRET_LIFETIME_SECONDS = 180 * 24 * 60 * 60
-const BETTER_AUTH_SCHEMA_VERSION = '1.7.2+mfa.1'
+const BETTER_AUTH_SCHEMA_VERSION = '1.7.7+mfa.1'
 const ACCOUNT_SECURITY_FRESH_AGE_SECONDS = 10 * 60
 
 async function generateAppleClientSecret(config: CloudServerConfig): Promise<string> {

@@ -19,6 +19,7 @@ import * as cloudRateLimit from './migrations/015_cloud_rate_limit'
 import * as authSchema from './migrations/016_auth_schema'
 import * as authenticationEmailKinds from './migrations/017_authentication_email_kinds'
 import * as authenticationMFA from './migrations/018_authentication_mfa'
+import * as betterAuthAccountIssuer from './migrations/019_better_auth_account_issuer'
 import type { CloudDatabase } from './schema'
 
 const migrations: Record<string, Migration> = {
@@ -39,7 +40,8 @@ const migrations: Record<string, Migration> = {
   '015_cloud_rate_limit': cloudRateLimit,
   '016_auth_schema': authSchema,
   '017_authentication_email_kinds': authenticationEmailKinds,
-  '018_authentication_mfa': authenticationMFA
+  '018_authentication_mfa': authenticationMFA,
+  '019_better_auth_account_issuer': betterAuthAccountIssuer
 }
 
 class CloudMigrationProvider implements MigrationProvider {
@@ -66,7 +68,7 @@ const REQUIRED_AUTH_SCHEMA: Record<string, string[]> = {
     'two_factor_enabled'
   ],
   session: ['id', 'expires_at', 'token', 'user_id', 'impersonated_by'],
-  account: ['id', 'issuer', 'account_id', 'provider_id', 'user_id'],
+  account: ['id', 'account_id', 'provider_id', 'user_id'],
   verification: ['id', 'identifier', 'value', 'expires_at'],
   device_code: ['id', 'device_code', 'user_code', 'status', 'client_id'],
   rate_limit: ['id', 'key', 'count', 'last_request'],

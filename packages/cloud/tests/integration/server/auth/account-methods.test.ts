@@ -24,7 +24,6 @@ describe('account authentication methods', () => {
           id: crypto.randomUUID(),
           userId: account.userId,
           providerId: 'google',
-          issuer: 'https://accounts.google.com',
           accountId: 'google-account',
           createdAt: new Date(),
           updatedAt: new Date()

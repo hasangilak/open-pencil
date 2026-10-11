@@ -1,12 +1,14 @@
 import { describe, expect, test } from 'bun:test'
 
 import { createCloudDatabase, migrateCloudDatabase } from '#cloud/server'
+import { up as relaxAccountIssuer } from '#cloud/server/db/migrations/019_better_auth_account_issuer'
 import { PGlite } from '@electric-sql/pglite'
+import { CamelCasePlugin, Kysely, sql } from 'kysely'
 import { PGliteDialect } from 'kysely-pglite-dialect'
 
-async function testDatabase() {
-  const pglite = await PGlite.create({ dataDir: 'memory://' })
-  return createCloudDatabase({ dialect: new PGliteDialect(pglite) })
+async function testDatabase(pglite?: PGlite) {
+  const store = pglite ?? (await PGlite.create({ dataDir: 'memory://' }))
+  return createCloudDatabase({ dialect: new PGliteDialect(store) })
 }
 
 async function createRequiredAuthSchema(database: Awaited<ReturnType<typeof testDatabase>>) {
@@ -39,7 +41,6 @@ async function createRequiredAuthSchema(database: Awaited<ReturnType<typeof test
       'account',
       [
         ['id', 'uuid'],
-        ['issuer', 'text'],
         ['account_id', 'text'],
         ['provider_id', 'text'],
         ['user_id', 'uuid']
@@ -112,7 +113,7 @@ describe('Better Auth schema ledger', () => {
     const database = await testDatabase()
     let runs = 0
     const migration = {
-      schemaVersion: '1.7.2+mfa.1',
+      schemaVersion: '1.7.7+mfa.1',
       async run() {
         runs++
         await createRequiredAuthSchema(database)
@@ -124,7 +125,7 @@ describe('Better Auth schema ledger', () => {
       expect(runs).toBe(1)
       expect(
         await database.selectFrom('cloudAuthSchema').selectAll().executeTakeFirstOrThrow()
-      ).toMatchObject({ id: 'better-auth', version: '1.7.2+mfa.1' })
+      ).toMatchObject({ id: 'better-auth', version: '1.7.7+mfa.1' })
     } finally {
       await database.destroy()
     }
@@ -136,14 +137,14 @@ describe('Better Auth schema ledger', () => {
       await migrateCloudDatabase(database)
       await createRequiredAuthSchema(database)
       await migrateCloudDatabase(database, {
-        schemaVersion: '1.7.2+mfa.1',
+        schemaVersion: '1.7.7+mfa.1',
         run: () => {
           throw new Error('Complete schemas must be adopted')
         }
       })
       expect(
         await database.selectFrom('cloudAuthSchema').select('version').executeTakeFirstOrThrow()
-      ).toEqual({ version: '1.7.2+mfa.1' })
+      ).toEqual({ version: '1.7.7+mfa.1' })
     } finally {
       await database.destroy()
     }
@@ -164,6 +165,54 @@ describe('Better Auth schema ledger', () => {
       await expect(
         migrateCloudDatabase(database, { schemaVersion: '1.8.0', run: async () => undefined })
       ).rejects.toThrow('requires an explicit migration')
+    } finally {
+      await database.destroy()
+    }
+  })
+
+  test('lets a schema from Better Auth 1.7.2 create accounts without an issuer', async () => {
+    const pglite = await PGlite.create({ dataDir: 'memory://' })
+    const database = await testDatabase(pglite)
+    // Migrations run untyped, the way the migrator calls them, with the database's plugins.
+    const untyped = new Kysely<unknown>({
+      dialect: new PGliteDialect(pglite),
+      plugins: [new CamelCasePlugin()]
+    })
+    try {
+      await migrateCloudDatabase(database)
+      await database.schema
+        .createTable('account')
+        .addColumn('id', 'uuid', (column) => column.primaryKey())
+        .addColumn('issuer', 'text', (column) => column.notNull())
+        .addColumn('account_id', 'text', (column) => column.notNull())
+        .addColumn('provider_id', 'text', (column) => column.notNull())
+        .execute()
+      await database.schema
+        .createIndex('account_issuer_accountId_uidx')
+        .on('account')
+        .columns(['issuer', 'account_id'])
+        .unique()
+        .execute()
+      await database
+        .insertInto('cloudAuthSchema')
+        .values({ id: 'better-auth', version: '1.7.2+mfa.1', updatedAt: new Date() })
+        .execute()
+
+      await relaxAccountIssuer(untyped)
+
+      expect(
+        await database.selectFrom('cloudAuthSchema').select('version').executeTakeFirstOrThrow()
+      ).toEqual({ version: '1.7.7+mfa.1' })
+      const account = (await database.introspection.getTables()).find(
+        (table) => table.name === 'account'
+      )
+      expect(account?.columns.find((column) => column.name === 'issuer')?.isNullable).toBe(true)
+      const indexes = await sql<{ indexname: string }>`
+        select indexname from pg_indexes where tablename = 'account'
+      `.execute(database)
+      expect(indexes.rows.map((row) => row.indexname)).not.toContain(
+        'account_issuer_accountId_uidx'
+      )
     } finally {
       await database.destroy()
     }
