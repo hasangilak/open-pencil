@@ -57,7 +57,10 @@ export function createAdminUserService(
 
   return {
     list(headers: Headers, query?: { searchValue?: string; limit?: number; offset?: number }) {
-      return auth.listUsers(headers, query)
+      return auth.listUsers(headers, {
+        ...query,
+        limit: Math.min(Math.max(query?.limit ?? 100, 1), 500)
+      })
     },
     async ban(headers: Headers, actorId: string, userId: string, reason?: string): Promise<void> {
       await requireSafeTarget(actorId, userId, 'ban')

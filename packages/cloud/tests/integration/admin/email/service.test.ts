@@ -91,4 +91,48 @@ describe('admin email regeneration', () => {
       await runtime.close()
     }
   })
+
+  test('refuses to resend a message the enrollment no longer matches', async () => {
+    const runtime = await createCloudTestDatabase()
+    try {
+      await runtime.database
+        .insertInto('cloudEnrollment')
+        .values({
+          id: crypto.randomUUID(),
+          emailNormalized: 'revoked@example.com',
+          name: 'Revoked',
+          reason: null,
+          status: 'revoked',
+          reviewedAt: new Date(),
+          reviewedBy: 'admin',
+          reviewNote: null,
+          approvedUserId: null
+        })
+        .execute()
+      const email = createTransactionalEmailService(runtime.database, {
+        encryptionSecret: 'regeneration-secret-at-least-32-characters',
+        from: 'cloud@example.com'
+      })
+      const approval = await email.enqueue({
+        idempotencyKey: 'stale-approval',
+        kind: 'enrollment-approved',
+        recipientEmail: 'revoked@example.com',
+        payload: { name: 'Revoked', actionURL: 'https://cloud.example.com' }
+      })
+      await expect(
+        createAdminEmailService(runtime.database, email, 'https://cloud.example.com').regenerate(
+          'admin',
+          approval
+        )
+      ).rejects.toBeInstanceOf(AdminDomainError)
+      const queued = await runtime.database
+        .selectFrom('transactionalEmail')
+        .select('id')
+        .where('recipientEmailNormalized', '=', 'revoked@example.com')
+        .execute()
+      expect(queued).toHaveLength(1)
+    } finally {
+      await runtime.close()
+    }
+  })
 })

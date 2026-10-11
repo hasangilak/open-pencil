@@ -14,6 +14,14 @@ describe('document sharing grants integration', () => {
       expect(await context.sharing.listGrants('owner', context.documentId)).toHaveLength(1)
       await context.sharing.revokeGrant('owner', context.documentId, 'outside-user')
       expect(await context.sharing.listGrants('owner', context.documentId)).toEqual([])
+      // Revoking access advances the epoch, so tickets and room keys issued before stop working.
+      expect(
+        await context.runtime.database
+          .selectFrom('document')
+          .select('collaborationEpoch')
+          .where('id', '=', context.documentId)
+          .executeTakeFirstOrThrow()
+      ).toEqual({ collaborationEpoch: 1 })
     } finally {
       await context.runtime.close()
     }
@@ -31,7 +39,12 @@ describe('document sharing grants integration', () => {
         created.invitation.id,
         { token: created.token }
       )
-      expect(accepted).toMatchObject({ userId: 'invited-user', permission: 'edit' })
+      // The grant names the inviter, so "shared by" shows who shared it.
+      expect(accepted).toMatchObject({
+        userId: 'invited-user',
+        permission: 'edit',
+        createdBy: 'owner'
+      })
       await expect(
         context.sharing.acceptInvitation(
           { userId: 'second-user', name: 'Second', email: 'person@example.com' },

@@ -1,7 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 
 import { CLOUD_FEATURE_KEYS, seedSharing, sharingWithPolicy } from '#cloud-tests/helpers/sharing'
-import { DocumentForbiddenError, DocumentShareInvalidError } from '#cloud/server'
+import {
+  DocumentForbiddenError,
+  DocumentNotFoundError,
+  DocumentShareInvalidError
+} from '#cloud/server'
 
 describe('document sharing capabilities integration', () => {
   test('creates hash-only capabilities and resolves user and guest principals', async () => {
@@ -108,6 +112,27 @@ describe('document sharing capabilities integration', () => {
           })
         ).rejects.toBeInstanceOf(DocumentForbiddenError)
       }
+    } finally {
+      await context.runtime.close()
+    }
+  })
+
+  test('checks sharing access before it looks up a share to update', async () => {
+    const context = await seedSharing()
+    try {
+      const capability = await context.sharing.createShare('owner', context.documentId, {
+        permission: 'view'
+      })
+      await expect(
+        context.sharing.updateShare('viewer', context.documentId, capability.share.id, {
+          expiresAt: null
+        })
+      ).rejects.toBeInstanceOf(DocumentForbiddenError)
+      await expect(
+        context.sharing.updateShare('owner', context.documentId, crypto.randomUUID(), {
+          expiresAt: null
+        })
+      ).rejects.toBeInstanceOf(DocumentNotFoundError)
     } finally {
       await context.runtime.close()
     }

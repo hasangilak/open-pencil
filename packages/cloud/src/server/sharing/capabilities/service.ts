@@ -14,7 +14,7 @@ import type { Kysely, UpdateObject } from 'kysely'
 
 import { randomHex } from '@open-pencil/scene-graph/random'
 
-import { requireSharingAccess } from '../access'
+import { advanceCollaborationEpoch, requireSharingAccess } from '../access'
 import { shareContract } from '../contracts'
 import { capabilityHashMatches, hashCapability } from '../crypto'
 import { DocumentShareInvalidError } from '../errors'
@@ -127,17 +127,18 @@ export function createCapabilityService(
       shareId: string,
       input: UpdateDocumentShareInput
     ): Promise<DocumentShare> {
-      const permission =
-        input.permission ??
-        (
-          await database
-            .selectFrom('documentShare')
-            .select('permission')
-            .where('id', '=', shareId)
-            .where('documentId', '=', documentId)
-            .where('revokedAt', 'is', null)
-            .executeTakeFirstOrThrow()
-        ).permission
+      // Authorization comes first, so a caller without access learns nothing about the share
+      // or the document's link policy.
+      await requireSharingAccess(database, userId, documentId)
+      const current = await database
+        .selectFrom('documentShare')
+        .select('permission')
+        .where('id', '=', shareId)
+        .where('documentId', '=', documentId)
+        .where('revokedAt', 'is', null)
+        .executeTakeFirst()
+      if (!current) throw new DocumentNotFoundError()
+      const permission = input.permission ?? current.permission
       await sharingPolicy.requireCapabilityLink({ actorId: userId, documentId, permission })
       const changes: UpdateObject<CloudDatabase, 'documentShare'> = { updatedAt: new Date() }
       if (input.permission) changes.permission = input.permission
@@ -191,11 +192,7 @@ export function createCapabilityService(
           .where('revokedAt', 'is', null)
           .executeTakeFirst()
         if (Number(result.numUpdatedRows) === 0) throw new DocumentNotFoundError()
-        await transaction
-          .updateTable('document')
-          .set({ collaborationEpoch: (expression) => expression('collaborationEpoch', '+', 1) })
-          .where('id', '=', documentId)
-          .executeTakeFirst()
+        await advanceCollaborationEpoch(transaction, documentId)
       })
     },
 

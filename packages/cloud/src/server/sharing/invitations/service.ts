@@ -219,6 +219,7 @@ export function createInvitationService(
           'documentId',
           'emailNormalized',
           'permission',
+          'invitedBy',
           'tokenHash',
           'expiresAt',
           'acceptedAt',
@@ -241,12 +242,14 @@ export function createInvitationService(
             documentId: invitation.documentId,
             userId: actor.userId,
             permission: invitation.permission,
-            createdBy: actor.userId,
+            // The grant is the inviter's, so "shared by" names them, not the recipient.
+            createdBy: invitation.invitedBy,
             revokedAt: null
           })
           .onConflict((conflict) =>
             conflict.columns(['documentId', 'userId']).doUpdateSet({
               permission: invitation.permission,
+              createdBy: invitation.invitedBy,
               revokedAt: null,
               updatedAt: new Date()
             })

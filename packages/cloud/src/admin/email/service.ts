@@ -1,7 +1,16 @@
+import type { EnrollmentStatus } from '#cloud/admin/enrollment/service'
 import { AdminDomainError } from '#cloud/admin/errors'
 import type { CloudDatabase } from '#cloud/server/db'
 import type { TransactionalEmailService } from '#cloud/server/email'
 import type { Kysely } from 'kysely'
+
+/** The enrollment status each message describes; a message is resent only while it still holds. */
+const ENROLLMENT_MESSAGE_STATUS: Partial<Record<string, EnrollmentStatus>> = {
+  'enrollment-requested': 'pending',
+  'enrollment-approved': 'approved',
+  'enrollment-rejected': 'rejected',
+  'enrollment-revoked': 'revoked'
+}
 
 export function createAdminEmailService(
   database: Kysely<CloudDatabase>,
@@ -56,6 +65,12 @@ export function createAdminEmailService(
           .executeTakeFirst()
         if (!enrollment)
           throw new AdminDomainError('email_regeneration_unavailable', 'Enrollment is unavailable')
+        if (ENROLLMENT_MESSAGE_STATUS[kind] !== enrollment.status) {
+          throw new AdminDomainError(
+            'email_regeneration_unavailable',
+            'The enrollment no longer matches this message'
+          )
+        }
         await email.enqueue(
           {
             idempotencyKey: `admin-regeneration/${messageId}/${crypto.randomUUID()}`,

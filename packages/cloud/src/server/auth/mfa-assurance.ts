@@ -42,6 +42,7 @@ export function createMFAAssuranceService(
       return {
         required: config.deploymentAdminMFARequired && input.deploymentRole === 'admin' && !assured,
         enabled: input.twoFactorEnabled || input.passkeyCount > 0,
+        totpEnabled: input.twoFactorEnabled,
         assured,
         totpAvailable: config.totpEnabled,
         passkeysAvailable: config.passkeysEnabled,

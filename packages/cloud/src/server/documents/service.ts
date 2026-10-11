@@ -8,7 +8,11 @@ import type {
 } from '#cloud/contract'
 import { createUploadCleanupService } from '#cloud/server/cleanup'
 import type { CloudDatabase } from '#cloud/server/db'
-import { canEditDocument, resolveDocumentAccess } from '#cloud/server/documents/access'
+import {
+  canDeleteDocument,
+  canEditDocument,
+  resolveDocumentAccess
+} from '#cloud/server/documents/access'
 import {
   findDocument,
   insertDocument,
@@ -147,7 +151,9 @@ export function createDocumentService(
     async remove(userId: string, documentId: string): Promise<void> {
       const access = await resolveDocumentAccess(database, userId, documentId)
       if (!access) throw new DocumentNotFoundError()
-      if (!canEditDocument(access)) throw new DocumentForbiddenError()
+      if (!canEditDocument(access) || !(await canDeleteDocument(database, userId, documentId))) {
+        throw new DocumentForbiddenError()
+      }
       await database
         .updateTable('document')
         .set({ deletedAt: new Date() })

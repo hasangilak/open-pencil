@@ -191,7 +191,8 @@ export function createCloudApp(services: CloudServices) {
   const entitlements = createEntitlementService(
     services.database,
     policy,
-    services.config.technicalLimits.maximumUploadBytes
+    services.config.technicalLimits.maximumUploadBytes,
+    services.config.technicalLimits.maximumConnectionsPerRoom
   )
   const sharing = createDocumentSharingService(services.database, {
     delivery: services.invitationDelivery,
@@ -223,7 +224,11 @@ export function createCloudApp(services: CloudServices) {
     CLOUD_RATE_LIMITS.publicCapability,
     { trustedHeaders: services.config.authTrustedIPHeaders },
     (context) => context.json({ error: { code: 'not_found' as const } }, 404),
-    { resource: (context) => context.req.path }
+    {
+      resource: (context) => context.req.path,
+      // Guests refresh collaboration tickets on their own budget, `publicCollaborationLimiter`.
+      skip: (context) => context.req.path.endsWith('/collaboration-ticket')
+    }
   )
   const publicCollaborationLimiter = createTrustedIPRateLimiter(
     services.database,
@@ -331,7 +336,7 @@ export function createCloudApp(services: CloudServices) {
       return services.auth.handler(context.req.raw)
     })
     .route('/', accountRoutes)
-    .use('/api/public/shares/:shareId/collaboration-ticket', publicCollaborationLimiter)
+    .use('/api/shares/:shareId/collaboration-ticket', publicCollaborationLimiter)
     .use('/api/public/*', publicRateLimiter)
     .use('/api/shares/*', publicRateLimiter)
     .use('/api/invitations/*', publicRateLimiter)

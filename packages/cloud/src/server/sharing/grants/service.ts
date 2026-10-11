@@ -3,7 +3,7 @@ import type { CloudDatabase } from '#cloud/server/db'
 import { DocumentNotFoundError } from '#cloud/server/documents/service'
 import type { Kysely } from 'kysely'
 
-import { requireSharingAccess } from '../access'
+import { advanceCollaborationEpoch, requireSharingAccess } from '../access'
 import { grantContract } from '../contracts'
 
 export function createGrantService(database: Kysely<CloudDatabase>) {
@@ -58,16 +58,20 @@ export function createGrantService(database: Kysely<CloudDatabase>) {
       return grantContract(row)
     },
 
+    /** Revoking access advances the collaboration epoch, so tickets and room keys issued before stop working. */
     async revokeGrant(userId: string, documentId: string, targetUserId: string): Promise<void> {
-      await requireSharingAccess(database, userId, documentId)
-      const result = await database
-        .updateTable('documentGrant')
-        .set({ revokedAt: new Date(), updatedAt: new Date() })
-        .where('documentId', '=', documentId)
-        .where('userId', '=', targetUserId)
-        .where('revokedAt', 'is', null)
-        .executeTakeFirst()
-      if (Number(result.numUpdatedRows) === 0) throw new DocumentNotFoundError()
+      await database.transaction().execute(async (transaction) => {
+        await requireSharingAccess(transaction, userId, documentId)
+        const result = await transaction
+          .updateTable('documentGrant')
+          .set({ revokedAt: new Date(), updatedAt: new Date() })
+          .where('documentId', '=', documentId)
+          .where('userId', '=', targetUserId)
+          .where('revokedAt', 'is', null)
+          .executeTakeFirst()
+        if (Number(result.numUpdatedRows) === 0) throw new DocumentNotFoundError()
+        await advanceCollaborationEpoch(transaction, documentId)
+      })
     }
   }
 }

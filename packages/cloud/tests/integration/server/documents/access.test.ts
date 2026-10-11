@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 
 import { createCloudTestDatabase } from '#cloud-tests/helpers/database'
-import { resolveDocumentAccess } from '#cloud/server'
+import { createMemoryObjectStore } from '#cloud-tests/helpers/objects'
+import { createDocumentService, DocumentForbiddenError, resolveDocumentAccess } from '#cloud/server'
 
 async function seedDocument() {
   const runtime = await createCloudTestDatabase()
@@ -99,6 +100,46 @@ describe('document access resolution', () => {
       ).toBeUndefined()
       expect(
         await resolveDocumentAccess(context.runtime.database, 'stranger', context.documentId)
+      ).toBeUndefined()
+    } finally {
+      await context.runtime.close()
+    }
+  })
+
+  test('lets only the owner and workspace admins and editors delete a document', async () => {
+    const context = await seedDocument()
+    try {
+      await context.runtime.database
+        .insertInto('documentGrant')
+        .values([
+          {
+            id: crypto.randomUUID(),
+            documentId: context.documentId,
+            userId: 'promoted',
+            permission: 'edit',
+            createdBy: 'owner'
+          },
+          {
+            id: crypto.randomUUID(),
+            documentId: context.documentId,
+            userId: 'invited',
+            permission: 'edit',
+            createdBy: 'owner'
+          }
+        ])
+        .execute()
+      const documents = createDocumentService(
+        context.runtime.database,
+        createMemoryObjectStore().store
+      )
+      for (const userId of ['promoted', 'invited', 'viewer']) {
+        await expect(documents.remove(userId, context.documentId)).rejects.toBeInstanceOf(
+          DocumentForbiddenError
+        )
+      }
+      await documents.remove('editor', context.documentId)
+      expect(
+        await resolveDocumentAccess(context.runtime.database, 'owner', context.documentId)
       ).toBeUndefined()
     } finally {
       await context.runtime.close()

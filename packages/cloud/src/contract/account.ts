@@ -49,6 +49,7 @@ export const accountSecurityErrorResponseSchema = v.object({
 export const cloudMFAStatusSchema = v.object({
   required: v.boolean(),
   enabled: v.boolean(),
+  totpEnabled: v.boolean(),
   assured: v.boolean(),
   totpAvailable: v.boolean(),
   passkeysAvailable: v.boolean(),

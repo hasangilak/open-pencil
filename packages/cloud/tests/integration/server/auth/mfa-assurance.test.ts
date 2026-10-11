@@ -10,6 +10,7 @@ import { responseJSON } from '#cloud-tests/helpers/response'
 import { parseCloudServerConfig } from '#cloud/server'
 import { base32 } from '@better-auth/utils/base32'
 import { createOTP } from '@better-auth/utils/otp'
+import { sql } from 'kysely'
 import * as v from 'valibot'
 
 const mfaConfig = parseCloudServerConfig({
@@ -115,6 +116,85 @@ describe('deployment administrator MFA assurance', () => {
           )
         ).status
       ).toBe(403)
+    } finally {
+      await fixture.close()
+    }
+  })
+
+  test('keeps an administrator from deleting their last second factor', async () => {
+    const fixture = await createAccountAuthenticationFixture({ config: mfaConfig })
+    try {
+      const account = await createVerifiedCredentialAccount(fixture, {
+        email: 'passkey-admin@example.com',
+        name: 'Passkey Admin',
+        password: 'a sufficiently long password',
+        approved: true
+      })
+      await fixture.database
+        .updateTable('user')
+        .set({ role: 'admin' })
+        .where('id', '=', account.userId)
+        .execute()
+      const addPasskey = async (credential: string) => {
+        const id = crypto.randomUUID()
+        await sql`
+          insert into passkey (id, name, public_key, user_id, credential_id, counter, device_type, backed_up)
+          values (${id}, ${credential}, 'public-key', ${account.userId}, ${credential}, 0, 'singleDevice', false)
+        `.execute(fixture.database)
+        return id
+      }
+      const deletePasskey = (id: string) =>
+        fixture.app.fetch(
+          accountAuthenticationRequest(
+            '/api/account/mfa/passkeys/delete',
+            { id },
+            account.sessionCookie
+          )
+        )
+
+      const only = await addPasskey('only')
+      const refused = await deletePasskey(only)
+      expect(refused.status).toBe(403)
+      expect(await refused.json()).toEqual({ error: { code: 'mfa_required' } })
+
+      const spare = await addPasskey('spare')
+      expect((await deletePasskey(only)).status).toBe(200)
+      expect((await deletePasskey(spare)).status).toBe(403)
+    } finally {
+      await fixture.close()
+    }
+  })
+
+  test('refuses Better Auth admin endpoints outside the Cloud admin API', async () => {
+    const fixture = await createAccountAuthenticationFixture({ config: mfaConfig })
+    try {
+      const account = await createVerifiedCredentialAccount(fixture, {
+        email: 'direct-admin@example.com',
+        name: 'Direct Admin',
+        password: 'a sufficiently long password',
+        approved: true
+      })
+      await fixture.database
+        .updateTable('user')
+        .set({ role: 'admin' })
+        .where('id', '=', account.userId)
+        .execute()
+      for (const path of ['/api/auth/admin/set-role', '/api/auth/admin/impersonate-user']) {
+        const response = await fixture.app.fetch(
+          accountAuthenticationRequest(
+            path,
+            { userId: account.userId, role: 'user' },
+            account.sessionCookie
+          )
+        )
+        expect(response.status).toBe(403)
+      }
+      const user = await fixture.database
+        .selectFrom('user')
+        .select('role')
+        .where('id', '=', account.userId)
+        .executeTakeFirstOrThrow()
+      expect(user.role).toBe('admin')
     } finally {
       await fixture.close()
     }

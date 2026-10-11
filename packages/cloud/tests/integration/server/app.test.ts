@@ -227,6 +227,45 @@ describe('createCloudApp', () => {
     }
   })
 
+  test('answers malformed admin input and unknown IDs with client errors', async () => {
+    const runtime = await createCloudTestDatabase()
+    try {
+      const adminApp = createCloudApp({
+        ...services(),
+        database: runtime.database,
+        auth: createBetterAuthAdapter(config, runtime.database),
+        resolveSession: async () => ({
+          userId: 'admin-user',
+          email: 'admin@example.com',
+          name: 'Admin',
+          deploymentRole: 'admin'
+        })
+      })
+      for (const path of [
+        '/api/admin/audit?limit=many',
+        '/api/admin/email?limit=-1',
+        '/api/admin/users?offset=1.5',
+        '/api/admin/enrollments?status=sideways'
+      ]) {
+        const response = await adminApp.request(path)
+        expect(response.status).toBe(400)
+        expect(await response.json()).toEqual({ error: { code: 'invalid_request' } })
+      }
+      const review = await adminApp.request(
+        `/api/admin/enrollments/${crypto.randomUUID()}/approve`,
+        {
+          method: 'POST',
+          headers: { Origin: 'https://pencil.example.com', 'Content-Type': 'application/json' },
+          body: '{}'
+        }
+      )
+      expect(review.status).toBe(404)
+      expect(await review.json()).toEqual({ error: { code: 'not_found' } })
+    } finally {
+      await runtime.close()
+    }
+  })
+
   test('exposes restricted account state without authorizing product APIs', async () => {
     const runtime = await createCloudTestDatabase()
     try {
@@ -398,5 +437,37 @@ describe('createCloudApp', () => {
     const response = await createCloudApp(unavailable).request('/ready')
     expect(response.status).toBe(503)
     expect(await response.json()).toEqual({ status: 'unavailable' })
+  })
+
+  test('limits guest collaboration tickets on their own budget', async () => {
+    const runtime = await createCloudTestDatabase()
+    try {
+      const proxied = parseCloudServerConfig({
+        ...config,
+        authTrustedIPHeaders: ['x-forwarded-for']
+      })
+      const app = createCloudApp({
+        ...services(),
+        config: proxied,
+        database: runtime.database,
+        auth: createBetterAuthAdapter(proxied, runtime.database)
+      })
+      const shareId = crypto.randomUUID()
+      const headers = { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.7' }
+      const ticket = await app.request(`/api/shares/${shareId}/collaboration-ticket`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ secret: 'a'.repeat(64) })
+      })
+      const share = await app.request(`/api/shares/${shareId}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ secret: 'a'.repeat(64) })
+      })
+      expect(ticket.headers.get('ratelimit-policy')).toContain('60;w=60')
+      expect(share.headers.get('ratelimit-policy')).toContain('30;w=60')
+    } finally {
+      await runtime.close()
+    }
   })
 })

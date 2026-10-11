@@ -57,13 +57,55 @@ export function createDocumentSharingService(
       profileUserId: string
     ): Promise<CloudUserProfile | null> {
       await requireSharingAccess(database, userId, documentId)
-      return (
-        (await database
-          .selectFrom('user')
-          .select(['id', 'name', 'email', 'image'])
-          .where('id', '=', profileUserId)
-          .executeTakeFirst()) ?? null
-      )
+      // Only people connected to this document: its owner, its workspace's members, the holders
+      // and givers of its grants, and the people who invited others to it. User IDs are text in
+      // these tables, so they are compared with the requested ID rather than `user.id`.
+      const related = await database
+        .selectFrom('document')
+        .select('document.id')
+        .where('document.id', '=', documentId)
+        .where((expression) =>
+          expression.or([
+            expression('document.createdBy', '=', profileUserId),
+            expression.exists(
+              expression
+                .selectFrom('workspaceMember')
+                .select('workspaceMember.userId')
+                .whereRef('workspaceMember.workspaceId', '=', 'document.workspaceId')
+                .where('workspaceMember.userId', '=', profileUserId)
+            ),
+            expression.exists(
+              expression
+                .selectFrom('documentGrant')
+                .select('documentGrant.id')
+                .whereRef('documentGrant.documentId', '=', 'document.id')
+                .where((grant) =>
+                  grant.or([
+                    grant.and([
+                      grant('documentGrant.userId', '=', profileUserId),
+                      grant('documentGrant.revokedAt', 'is', null)
+                    ]),
+                    grant('documentGrant.createdBy', '=', profileUserId)
+                  ])
+                )
+            ),
+            expression.exists(
+              expression
+                .selectFrom('documentInvitation')
+                .select('documentInvitation.id')
+                .whereRef('documentInvitation.documentId', '=', 'document.id')
+                .where('documentInvitation.invitedBy', '=', profileUserId)
+            )
+          ])
+        )
+        .executeTakeFirst()
+      if (!related) return null
+      const user = await database
+        .selectFrom('user')
+        .select(['id', 'name', 'email', 'image'])
+        .where('id', '=', profileUserId)
+        .executeTakeFirst()
+      return user ?? null
     },
 
     ...capabilities,

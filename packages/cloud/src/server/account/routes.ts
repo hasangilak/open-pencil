@@ -120,18 +120,21 @@ export function createAccountRoutes(services: AccountRouteDependencies) {
       async (context) => {
         const actor = await resolveSession(context.req.raw)
         if (!actor) return context.json({ error: { code: 'unauthorized' as const } }, 401)
-        const status = await services.auth.mfaStatus(context.req.raw.headers)
-        const passkeys = await services.auth.listPasskeys(context.req.raw.headers)
-        if (
-          actor.deploymentRole === 'admin' &&
-          services.config.deploymentAdminMFARequired &&
-          !status?.enabled &&
-          passkeys.length <= 1
-        ) {
-          return context.json({ error: { code: 'mfa_required' as const } }, 403)
+        const { id } = context.req.valid('json')
+        if (actor.deploymentRole === 'admin' && services.config.deploymentAdminMFARequired) {
+          // An administrator keeps at least one second factor: TOTP or another passkey.
+          const status = await services.auth.mfaStatus(context.req.raw.headers)
+          const passkeys = await services.auth.listPasskeys(context.req.raw.headers)
+          const otherPasskeys = passkeys.filter((passkey) => passkey.id !== id)
+          if (!status?.totpEnabled && otherPasskeys.length === 0) {
+            return context.json({ error: { code: 'mfa_required' as const } }, 403)
+          }
         }
-        await services.auth.deletePasskey(context.req.raw.headers, context.req.valid('json').id)
-        return context.json({ ok: true as const })
+        const result = await accountAction(
+          () => services.auth.deletePasskey(context.req.raw.headers, id),
+          context
+        )
+        return result instanceof Response ? result : context.json({ ok: true as const })
       }
     )
     .use('/api/account/authentication/*', requireActiveSession)

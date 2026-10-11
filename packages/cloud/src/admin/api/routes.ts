@@ -17,8 +17,15 @@ import type { CloudDatabase } from '#cloud/server/db'
 import { CLOUD_RATE_LIMITS, createActorRateLimiter } from '#cloud/server/rate-limit'
 import { validatedJSON } from '#cloud/server/validation'
 import { Hono } from 'hono'
-import type { Kysely } from 'kysely'
+import { NoResultError, type Kysely } from 'kysely'
 import * as v from 'valibot'
+
+const countSchema = v.pipe(v.string(), v.digits(), v.toNumber())
+
+/** A count from the query string; anything but digits is a bad request, not a NaN query. */
+function queryCount(value: string | undefined, fallback: number): number {
+  return value === undefined ? fallback : v.parse(countSchema, value)
+}
 
 export type CloudAdminServices = {
   email: AdminEmailService
@@ -71,6 +78,13 @@ export function createCloudAdminRoutes(
       if (error instanceof AdminDomainError) {
         return context.json({ error: { code: error.code } }, adminErrorStatus(error))
       }
+      if (error instanceof v.ValiError) {
+        return context.json({ error: { code: 'invalid_request' as const } }, 400)
+      }
+      // An enrollment or message ID that names nothing.
+      if (error instanceof NoResultError) {
+        return context.json({ error: { code: 'not_found' as const } }, 404)
+      }
       throw error
     })
     .get('/enrollments', async (context) => {
@@ -112,8 +126,8 @@ export function createCloudAdminRoutes(
       context.json(
         await services.users.list(context.req.raw.headers, {
           searchValue: context.req.query('search'),
-          limit: Number(context.req.query('limit') ?? 100),
-          offset: Number(context.req.query('offset') ?? 0)
+          limit: queryCount(context.req.query('limit'), 100),
+          offset: queryCount(context.req.query('offset'), 0)
         })
       )
     )
@@ -153,7 +167,7 @@ export function createCloudAdminRoutes(
     })
     .get('/email', async (context) =>
       context.json({
-        messages: await services.email.list(Number(context.req.query('limit') ?? 100))
+        messages: await services.email.list(queryCount(context.req.query('limit'), 100))
       })
     )
     .post('/email/:id/regenerate', async (context) => {
@@ -161,7 +175,9 @@ export function createCloudAdminRoutes(
       return context.json({ ok: true as const })
     })
     .get('/audit', async (context) =>
-      context.json({ events: await services.audit.list(Number(context.req.query('limit') ?? 100)) })
+      context.json({
+        events: await services.audit.list(queryCount(context.req.query('limit'), 100))
+      })
     )
     .get('/operations', async (context) => context.json(await services.operations.summary()))
 }

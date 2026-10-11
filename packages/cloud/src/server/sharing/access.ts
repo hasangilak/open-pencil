@@ -12,3 +12,18 @@ export async function requireSharingAccess(
   if (!access) throw new DocumentNotFoundError()
   if (!access.canManageSharing) throw new DocumentForbiddenError()
 }
+
+/**
+ * Ends every collaboration ticket and room key issued for the document so far: removing someone's
+ * access must also remove them from its live room.
+ */
+export async function advanceCollaborationEpoch(
+  database: Kysely<CloudDatabase>,
+  documentId: string
+): Promise<void> {
+  await database
+    .updateTable('document')
+    .set({ collaborationEpoch: (expression) => expression('collaborationEpoch', '+', 1) })
+    .where('id', '=', documentId)
+    .executeTakeFirst()
+}

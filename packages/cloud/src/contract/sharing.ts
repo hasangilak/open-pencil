@@ -17,15 +17,18 @@ export const documentShareSchema = v.object({
 })
 export type DocumentShare = v.InferOutput<typeof documentShareSchema>
 
+/** When a link stops working, as an ISO timestamp; `null` keeps it working until revoked. */
+const shareExpirySchema = v.optional(v.nullable(v.pipe(v.string(), v.isoTimestamp())))
+
 export const createDocumentShareSchema = v.object({
   permission: documentPermissionSchema,
-  expiresAt: v.optional(v.nullable(v.string()))
+  expiresAt: shareExpirySchema
 })
 export type CreateDocumentShareInput = v.InferOutput<typeof createDocumentShareSchema>
 
 export const updateDocumentShareSchema = v.object({
   permission: v.optional(documentPermissionSchema),
-  expiresAt: v.optional(v.nullable(v.string()))
+  expiresAt: shareExpirySchema
 })
 export type UpdateDocumentShareInput = v.InferOutput<typeof updateDocumentShareSchema>
 

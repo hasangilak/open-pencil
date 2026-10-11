@@ -300,6 +300,12 @@ export function createBetterAuthAdapter(
     ]
   })
 
+  // Better Auth's admin plugin treats `adminUserIds` as administrators too, so Cloud does the same.
+  const deploymentRole = (user: { id: string; role?: string | null }) =>
+    user.role === 'admin' || config.deploymentAdminUserIds.includes(user.id)
+      ? ('admin' as const)
+      : ('user' as const)
+
   const resolveIdentity = async (headers: Headers) => {
     const session = await auth.api.getSession({ headers })
     if (!session) return null
@@ -307,17 +313,20 @@ export function createBetterAuthAdapter(
       userId: session.user.id,
       email: session.user.email,
       name: session.user.name,
-      deploymentRole:
-        'role' in session.user && session.user.role === 'admin'
-          ? ('admin' as const)
-          : ('user' as const)
+      deploymentRole: deploymentRole(session.user)
     }
   }
 
   return {
     handler: async (request) => {
+      const path = new URL(request.url).pathname
+      // Administration goes through `/api/admin`, which adds MFA, origin, last-admin, and audit
+      // checks; Better Auth's own admin endpoints would skip all of them.
+      if (path === '/api/auth/admin' || path.startsWith('/api/auth/admin/')) {
+        return Response.json({ error: { code: 'forbidden' } }, { status: 403 })
+      }
       const response = await auth.handler(request)
-      const method = assuranceMethod(new URL(request.url).pathname)
+      const method = assuranceMethod(path)
       if (response.ok && method)
         await recordResponseAssurance(response, method, database, assurance)
       return response
@@ -412,7 +421,7 @@ export function createBetterAuthAdapter(
       return assurance.status({
         sessionId: session.session.id,
         userId: session.user.id,
-        deploymentRole: 'role' in session.user && session.user.role === 'admin' ? 'admin' : 'user',
+        deploymentRole: deploymentRole(session.user),
         twoFactorEnabled:
           'twoFactorEnabled' in session.user && session.user.twoFactorEnabled === true,
         passkeyCount: passkeys.length

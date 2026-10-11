@@ -13,6 +13,8 @@ export type CloudAdminUser = {
 export type CloudMFAStatus = {
   required: boolean
   enabled: boolean
+  /** Whether an authenticator app is set up, apart from any passkeys. */
+  totpEnabled: boolean
   assured: boolean
   totpAvailable: boolean
   passkeysAvailable: boolean
