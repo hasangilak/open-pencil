@@ -1,4 +1,5 @@
 import type { CloudDatabase } from '#cloud/server/db'
+import { sumBy } from 'es-toolkit'
 import type { Kysely } from 'kysely'
 
 export type StorageReconciliation = {
@@ -30,10 +31,7 @@ export function createStorageReconciliationService(database: Kysely<CloudDatabas
             .execute()
         ])
         const recordedBytes = Number(recorded?.committedBytes ?? 0)
-        const calculatedBytes = objects.reduce(
-          (total, object) => total + Number(object.byteSize),
-          0
-        )
+        const calculatedBytes = sumBy(objects, (object) => Number(object.byteSize))
         const corrected = recordedBytes !== calculatedBytes
         if (corrected && !options.dryRun) {
           await database

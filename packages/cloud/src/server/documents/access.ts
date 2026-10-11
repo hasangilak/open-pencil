@@ -5,6 +5,7 @@ import type {
   WorkspaceRole
 } from '#cloud/contract'
 import type { CloudDatabase } from '#cloud/server/db'
+import { maxBy } from 'es-toolkit'
 import type { Kysely, Transaction } from 'kysely'
 
 export type AccessDatabase = Kysely<CloudDatabase> | Transaction<CloudDatabase>
@@ -58,11 +59,8 @@ export async function resolveDocumentAccess(
     sources.push('direct-grant')
     candidates.push(document.grantPermission)
   }
-  if (candidates.length === 0) return undefined
-
-  const permission = candidates.reduce((strongest, candidate) =>
-    PERMISSION_WEIGHT[candidate] > PERMISSION_WEIGHT[strongest] ? candidate : strongest
-  )
+  const permission = maxBy(candidates, (candidate) => PERMISSION_WEIGHT[candidate])
+  if (!permission) return undefined
   const workspaceCanManage =
     document.workspaceRole === 'admin' || document.workspaceRole === 'editor'
   return {

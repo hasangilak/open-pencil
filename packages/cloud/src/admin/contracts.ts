@@ -1,5 +1,8 @@
 import * as v from 'valibot'
 
+/** The most rows one admin list request returns. */
+export const ADMIN_LIST_MAXIMUM = 500
+
 export const enrollmentStatusSchema = v.picklist(['pending', 'approved', 'rejected', 'revoked'])
 export const enrollmentReviewSchema = v.object({
   note: v.optional(v.pipe(v.string(), v.trim(), v.maxLength(1000)))

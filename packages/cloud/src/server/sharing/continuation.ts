@@ -85,7 +85,7 @@ export function invitationTokenIsActive(
 
 export function recipientHint(email: string): string {
   const [local = '', domain = ''] = email.split('@')
-  const visible = local.slice(0, Math.min(2, local.length))
+  const visible = local.slice(0, 2)
   return `${visible}${'*'.repeat(Math.max(3, local.length - visible.length))}@${domain}`
 }
 

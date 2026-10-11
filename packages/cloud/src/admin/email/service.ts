@@ -1,7 +1,9 @@
+import { ADMIN_LIST_MAXIMUM } from '#cloud/admin/contracts'
 import type { EnrollmentStatus } from '#cloud/admin/enrollment/service'
 import { AdminDomainError } from '#cloud/admin/errors'
 import type { CloudDatabase } from '#cloud/server/db'
 import type { TransactionalEmailService } from '#cloud/server/email'
+import { clamp } from 'es-toolkit'
 import type { Kysely } from 'kysely'
 
 /** The enrollment status each message describes; a message is resent only while it still holds. */
@@ -35,7 +37,7 @@ export function createAdminEmailService(
           'acceptedAt'
         ])
         .orderBy('createdAt', 'desc')
-        .limit(Math.min(Math.max(limit, 1), 500))
+        .limit(clamp(limit, 1, ADMIN_LIST_MAXIMUM))
         .execute()
       return rows.map((row) => ({ ...row, regeneratable: row.kind.startsWith('enrollment-') }))
     },

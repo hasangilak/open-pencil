@@ -1,6 +1,8 @@
+import { ADMIN_LIST_MAXIMUM } from '#cloud/admin/contracts'
 import { AdminDomainError } from '#cloud/admin/errors'
 import type { CloudAuthAdapter } from '#cloud/server/auth'
 import type { CloudDatabase } from '#cloud/server/db'
+import { clamp } from 'es-toolkit'
 import type { Kysely } from 'kysely'
 
 export function createAdminUserService(
@@ -59,7 +61,7 @@ export function createAdminUserService(
     list(headers: Headers, query?: { searchValue?: string; limit?: number; offset?: number }) {
       return auth.listUsers(headers, {
         ...query,
-        limit: Math.min(Math.max(query?.limit ?? 100, 1), 500)
+        limit: clamp(query?.limit ?? 100, 1, ADMIN_LIST_MAXIMUM)
       })
     },
     async ban(headers: Headers, actorId: string, userId: string, reason?: string): Promise<void> {
