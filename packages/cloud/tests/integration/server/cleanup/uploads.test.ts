@@ -4,7 +4,7 @@ import { createCloudTestDatabase } from '#cloud-tests/helpers/database'
 import { createMemoryObjectStore } from '#cloud-tests/helpers/objects'
 import { createUploadCleanupService } from '#cloud/server'
 
-async function insertExpiredUploads(count: number) {
+async function insertExpiredUploads(count: number, multipartUploadId: string | null = null) {
   const runtime = await createCloudTestDatabase()
   const workspaceId = crypto.randomUUID()
   const documentId = crypto.randomUUID()
@@ -29,7 +29,7 @@ async function insertExpiredUploads(count: number) {
     checksum: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
     byteSize: 1,
     contentType: 'application/octet-stream',
-    multipartUploadId: null,
+    multipartUploadId,
     status: 'pending' as const,
     finalizationStartedAt: null,
     createdBy: 'alice',
@@ -60,6 +60,18 @@ describe('upload cleanup', () => {
           .where('status', '=', 'pending')
           .executeTakeFirstOrThrow()
       ).toEqual({ count: 1 })
+    } finally {
+      await context.runtime.close()
+    }
+  })
+
+  test('removes a completed multipart upload whose commit never landed', async () => {
+    const context = await insertExpiredUploads(1, 'multipart-upload')
+    const objects = createMemoryObjectStore()
+    try {
+      const cleanup = createUploadCleanupService(context.runtime.database, objects.store)
+      await cleanup.cleanupExpiredUploads({ batchSize: 10, leaseDurationMs: 60_000 })
+      expect(objects.deletedKeys).toEqual(context.uploads.map((upload) => upload.objectKey))
     } finally {
       await context.runtime.close()
     }

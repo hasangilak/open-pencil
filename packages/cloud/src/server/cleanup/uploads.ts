@@ -117,10 +117,13 @@ export function createUploadCleanupService(
   }
 }
 
+/**
+ * Aborting covers a multipart upload that never finished; deleting covers one that did, such as an
+ * upload whose commit lost to a newer revision after its parts were assembled.
+ */
 async function removeUploadObject(objects: ObjectStore, upload: ClaimedUpload): Promise<void> {
   if (upload.multipartUploadId) {
     await objects.abortUpload({ key: upload.objectKey, uploadId: upload.multipartUploadId })
-    return
   }
   await objects.delete(upload.objectKey)
 }
