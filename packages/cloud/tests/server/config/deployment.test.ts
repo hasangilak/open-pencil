@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import {
   cloudDeploymentConfigSchema,
+  cloudDiscoveryFromConfig,
   parseCloudDeploymentConfig,
   parseCloudDeploymentTOML
 } from '#cloud/server'
@@ -164,6 +165,22 @@ describe('Cloud TOML deployment configuration', () => {
         maximumConnectionsPerRoom: 250
       }
     })
+  })
+
+  test('lists the server for editors from a minimum version, and only when configured', () => {
+    const unlisted = cloudDiscoveryFromConfig(parseCloudDeploymentTOML(minimalSource, environment))
+    expect(unlisted.listing).toBeUndefined()
+
+    const listedSource = minimalSource.replace(
+      'trusted_origins = ["https://app.example.com"]',
+      'trusted_origins = ["https://app.example.com"]\nlisting = { minimum_editor_version = "0.14.0" }'
+    )
+    const listed = cloudDiscoveryFromConfig(parseCloudDeploymentTOML(listedSource, environment))
+    expect(listed.listing).toEqual({ minimumEditorVersion: '0.14.0' })
+
+    expect(() =>
+      parseCloudDeploymentTOML(listedSource.replace('"0.14.0"', '"soon"'), environment)
+    ).toThrow()
   })
 
   test('supports explicit secret-reference names', () => {

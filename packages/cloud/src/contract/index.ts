@@ -14,11 +14,14 @@ export {
   cloudCapabilitiesSchema,
   cloudDeploymentSchema,
   cloudDiscoverySchema,
+  cloudEditorVersionSchema,
+  cloudListingSchema,
   parseCloudDiscovery,
   type CloudAuthentication,
   type CloudCapabilities,
   type CloudDeployment,
-  type CloudDiscovery
+  type CloudDiscovery,
+  type CloudListing
 } from './discovery'
 export {
   CLOUD_PROTOCOL_MAX_UPLOAD_BYTES,

@@ -6,6 +6,9 @@ public_url = "http://localhost:8787"
 app_url = "http://localhost:5173"
 indexing = "deny"
 trusted_origins = ["http://localhost:5173"]
+# Editors read this only from the official OpenPencil Cloud: it shows Cloud in editors from this
+# version on. Self-hosted servers leave it out.
+# listing = { minimum_editor_version = "0.14.0" }
 
 # Defaults to DATABASE_URL.
 [database]

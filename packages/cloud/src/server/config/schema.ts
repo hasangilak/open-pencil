@@ -1,4 +1,4 @@
-import { CLOUD_PROTOCOL_MAX_UPLOAD_BYTES } from '#cloud/contract'
+import { CLOUD_PROTOCOL_MAX_UPLOAD_BYTES, cloudEditorVersionSchema } from '#cloud/contract'
 import { staticEntitlementsSchema } from '#cloud/server/policy/static'
 import * as v from 'valibot'
 
@@ -31,6 +31,7 @@ const rawCloudServerConfigSchema = v.object({
   deployment: v.picklist(['official', 'self-hosted']),
   publicURL: httpURLSchema,
   appURL: v.optional(httpURLSchema),
+  listingMinimumEditorVersion: v.optional(cloudEditorVersionSchema),
   collaborationURL: v.optional(websocketURLSchema),
   collaborationPort: v.optional(
     v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(65_535)),

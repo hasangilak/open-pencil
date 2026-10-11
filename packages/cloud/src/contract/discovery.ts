@@ -41,6 +41,17 @@ export const cloudCapabilitiesSchema = v.object({
 })
 export type CloudCapabilities = v.InferOutput<typeof cloudCapabilitiesSchema>
 
+/** A released editor version, `major.minor.patch`. */
+export const cloudEditorVersionSchema = v.pipe(v.string(), v.regex(/^\d+\.\d+\.\d+$/))
+
+/**
+ * Whether editors offer this server to everyone, and from which editor version on. Only the
+ * official server's listing is read: it turns the Cloud entry points on without an editor release,
+ * and an editor older than the minimum keeps them hidden.
+ */
+export const cloudListingSchema = v.object({ minimumEditorVersion: cloudEditorVersionSchema })
+export type CloudListing = v.InferOutput<typeof cloudListingSchema>
+
 export const cloudDiscoverySchema = v.object({
   protocolVersion: v.literal(CLOUD_PROTOCOL_VERSION),
   deployment: cloudDeploymentSchema,
@@ -48,7 +59,8 @@ export const cloudDiscoverySchema = v.object({
   authURL: v.pipe(v.string(), v.url()),
   appURL: v.optional(v.pipe(v.string(), v.url())),
   authentication: cloudAuthenticationSchema,
-  capabilities: cloudCapabilitiesSchema
+  capabilities: cloudCapabilitiesSchema,
+  listing: v.optional(cloudListingSchema)
 })
 export type CloudDiscovery = v.InferOutput<typeof cloudDiscoverySchema>
 

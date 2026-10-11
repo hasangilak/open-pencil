@@ -1,3 +1,4 @@
+import { cloudEditorVersionSchema } from '#cloud/contract'
 import { staticEntitlementsTOMLSchema } from '#cloud/server/policy/static'
 import { parse as parseTOML } from 'smol-toml'
 import * as v from 'valibot'
@@ -77,7 +78,8 @@ export const cloudDeploymentConfigSchema = v.object({
     public_url: url,
     app_url: v.optional(url),
     indexing: v.optional(v.picklist(['allow', 'deny']), 'deny'),
-    trusted_origins: v.optional(v.array(url), [])
+    trusted_origins: v.optional(v.array(url), []),
+    listing: v.optional(v.object({ minimum_editor_version: cloudEditorVersionSchema }))
   }),
   database: v.optional(v.object({ url: defaultReference(DEFAULT_SECRET_NAMES.databaseURL) }), {
     url: { from_env: DEFAULT_SECRET_NAMES.databaseURL }
@@ -340,6 +342,7 @@ export function parseCloudDeploymentConfig(
     appURL: config.deployment.app_url,
     indexingPolicy: config.deployment.indexing,
     trustedOrigins: config.deployment.trusted_origins,
+    listingMinimumEditorVersion: config.deployment.listing?.minimum_editor_version,
     databaseURL: requiredSecret(environment, config.database.url),
     authSecret: requiredSecret(environment, config.authentication.secret),
     enrollmentMode: config.authentication.enrollment_mode,

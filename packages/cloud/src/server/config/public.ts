@@ -48,6 +48,9 @@ export function cloudDiscoveryFromConfig(config: CloudServerConfig): CloudDiscov
       documents: true,
       workspaces: true,
       collaboration: true
-    }
+    },
+    listing: config.listingMinimumEditorVersion
+      ? { minimumEditorVersion: config.listingMinimumEditorVersion }
+      : undefined
   })
 }
