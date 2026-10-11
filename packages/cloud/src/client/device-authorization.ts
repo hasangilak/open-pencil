@@ -18,6 +18,8 @@ const deviceTokenSchema = v.object({
   scope: v.string()
 })
 const deviceErrorSchema = v.object({ error: v.string(), error_description: v.optional(v.string()) })
+/** RFC 8628: each `slow_down` adds five seconds to the polling interval. */
+const SLOW_DOWN_MS = 5000
 
 export type CloudDeviceErrorCode = 'denied' | 'expired' | 'unavailable'
 
@@ -107,12 +109,19 @@ export async function pollCloudDeviceToken(
       }),
       signal: options.signal
     })
-    const body: unknown = await response.json()
-    if (response.ok) return v.parse(deviceTokenSchema, body)
-    const error = v.parse(deviceErrorSchema, body)
+    const body = await response.text()
+    if (response.ok) return v.parse(v.pipe(v.string(), v.parseJson(), deviceTokenSchema), body)
+    // A rate limit asks for the same as `slow_down`, whatever its body says.
+    if (response.status === 429) {
+      interval += SLOW_DOWN_MS
+      continue
+    }
+    const parsed = v.safeParse(v.pipe(v.string(), v.parseJson(), deviceErrorSchema), body)
+    if (!parsed.success) throw new CloudDeviceAuthorizationError('unavailable')
+    const error = parsed.output
     if (error.error === 'authorization_pending') continue
     if (error.error === 'slow_down') {
-      interval += 5000
+      interval += SLOW_DOWN_MS
       continue
     }
     let code: CloudDeviceErrorCode = 'unavailable'

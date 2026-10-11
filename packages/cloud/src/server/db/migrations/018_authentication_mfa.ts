@@ -1,3 +1,4 @@
+import { CURRENT_TIMESTAMP } from '#cloud/server/db/expressions'
 import type { CloudDatabase } from '#cloud/server/db/schema'
 import type { Kysely } from 'kysely'
 
@@ -51,7 +52,9 @@ export async function up(database: Kysely<unknown>): Promise<void> {
     .addColumn('device_type', 'text', (column) => column.notNull())
     .addColumn('backed_up', 'boolean', (column) => column.notNull())
     .addColumn('transports', 'text')
-    .addColumn('created_at', 'timestamptz', (column) => column.notNull().defaultTo(new Date()))
+    .addColumn('created_at', 'timestamptz', (column) =>
+      column.notNull().defaultTo(CURRENT_TIMESTAMP)
+    )
     .addColumn('aaguid', 'text')
     .execute()
   await database.schema.createIndex('passkey_user_index').on('passkey').column('user_id').execute()

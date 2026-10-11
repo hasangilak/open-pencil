@@ -1,3 +1,4 @@
+import { CURRENT_TIMESTAMP } from '#cloud/server/db/expressions'
 import type { CloudDatabase } from '#cloud/server/db/schema'
 import type { Kysely } from 'kysely'
 
@@ -10,7 +11,9 @@ export async function up(database: Kysely<CloudDatabase>): Promise<void> {
     .addColumn('values', 'jsonb', (column) => column.notNull())
     .addColumn('source', 'text', (column) => column.notNull())
     .addColumn('revision', 'integer', (column) => column.notNull().defaultTo(1))
-    .addColumn('updatedAt', 'timestamptz', (column) => column.notNull().defaultTo(new Date()))
+    .addColumn('updatedAt', 'timestamptz', (column) =>
+      column.notNull().defaultTo(CURRENT_TIMESTAMP)
+    )
     .execute()
 }
 

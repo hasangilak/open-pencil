@@ -79,6 +79,40 @@ describe('Cloud device authorization client', () => {
     })
   })
 
+  test('backs off after a rate limit and keeps polling', async () => {
+    const waits: number[] = []
+    let calls = 0
+    const token = await pollCloudDeviceToken(discovery, 'connection-id', authorization(), {
+      async sleep(milliseconds) {
+        waits.push(milliseconds)
+      },
+      async fetch() {
+        calls++
+        return calls === 1
+          ? Response.json({ message: 'Too many requests' }, { status: 429 })
+          : Response.json({
+              access_token: 'session-token',
+              token_type: 'Bearer',
+              expires_in: 3600,
+              scope: 'openid profile'
+            })
+      }
+    })
+    expect(token.access_token).toBe('session-token')
+    expect(waits).toEqual([1000, 6000])
+  })
+
+  test('reports an unreadable error response as unavailable', async () => {
+    const error = pollCloudDeviceToken(discovery, 'connection-id', authorization(), {
+      sleep: immediateSleep,
+      fetch: async () => new Response('<html>Bad gateway</html>', { status: 502 })
+    })
+    await expect(error).rejects.toMatchObject({
+      name: 'CloudDeviceAuthorizationError',
+      code: 'unavailable'
+    })
+  })
+
   test('expires before another token request', async () => {
     let now = 0
     let requests = 0

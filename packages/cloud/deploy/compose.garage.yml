@@ -7,8 +7,8 @@ services:
       GARAGE_DEFAULT_SECRET_KEY: ${GARAGE_SECRET_ACCESS_KEY:-openpencil-garage-development-secret-key}
       GARAGE_DEFAULT_BUCKET: ${GARAGE_BUCKET:-openpencil}
     ports:
-      - '3900:3900'
-      - '3903:3903'
+      - '127.0.0.1:3900:3900'
+      - '127.0.0.1:3903:3903'
     volumes:
       - garage-meta:/var/lib/garage/meta
       - garage-data:/var/lib/garage/data

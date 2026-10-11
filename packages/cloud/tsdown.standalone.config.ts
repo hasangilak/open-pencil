@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url'
+
 import { defineConfig } from 'tsdown'
 
 export default defineConfig({
@@ -13,7 +15,7 @@ export default defineConfig({
   inputOptions: {
     resolve: {
       alias: {
-        '#cloud': new URL('./src', import.meta.url).pathname
+        '#cloud': fileURLToPath(new URL('./src', import.meta.url))
       }
     }
   }

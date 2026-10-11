@@ -87,9 +87,11 @@ looser.
 ## Policy, entitlements, and quotas
 
 OpenFeature answers concrete questions such as whether capability links, anonymous viewing, or
-revision history are available, and what a numeric limit is. A database-backed provider resolves
-them from deployment capability, workspace entitlements, and document policy. Booleans need every
-layer to allow them; numeric limits take the most restrictive value.
+revision history are available, and what a numeric limit is. Its provider reads one entitlement
+source, chosen by `[entitlements] source`: the static table in the deployment TOML, which applies to
+every workspace, or per-workspace rows in the database that the `entitlements` command sets. The two
+are alternatives, not layers. Technical limits cap the file size and participant limits the source
+reports.
 
 Storage quota uses reservations: the upload locks the workspace's quota row, counts committed usage
 plus active reservations, reserves the requested bytes, and commits the verified size when the

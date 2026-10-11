@@ -1,13 +1,16 @@
 import { createMigratedNodeCloudDatabase } from './bootstrap'
 
+type MigratedNodeCloudDatabase = Awaited<ReturnType<typeof createMigratedNodeCloudDatabase>>
+
 export async function withNodeCloudDatabase<T>(
   operation: (
-    database: Awaited<ReturnType<typeof createMigratedNodeCloudDatabase>>['database']
+    database: MigratedNodeCloudDatabase['database'],
+    config: MigratedNodeCloudDatabase['config']
   ) => Promise<T>
 ): Promise<T> {
-  const { database } = await createMigratedNodeCloudDatabase(process.env)
+  const { config, database } = await createMigratedNodeCloudDatabase(process.env)
   try {
-    return await operation(database)
+    return await operation(database, config)
   } finally {
     await database.destroy()
   }

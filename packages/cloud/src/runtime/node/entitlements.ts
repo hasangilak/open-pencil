@@ -4,6 +4,7 @@ import { createWorkspaceEntitlementRepository, parseStaticEntitlementsTOML } fro
 import { parse as parseTOML } from 'smol-toml'
 
 import { withNodeCloudDatabase } from './command'
+import { entitlementWriteRefusal } from './entitlements-command'
 
 const operation = process.argv[2]
 const workspaceIndex = process.argv.indexOf('--workspace')
@@ -12,8 +13,10 @@ const dryRun = process.argv.includes('--dry-run')
 const workspaceId = workspaceIndex !== -1 ? process.argv[workspaceIndex + 1] : undefined
 if (!workspaceId) throw new Error('Expected --workspace <uuid>')
 
-await withNodeCloudDatabase(async (database) => {
+await withNodeCloudDatabase(async (database, config) => {
   const repository = createWorkspaceEntitlementRepository(database)
+  const refusal = entitlementWriteRefusal(config, operation, dryRun)
+  if (refusal) throw new Error(refusal)
   if (operation === 'get') {
     console.log(JSON.stringify({ entitlement: await repository.get(workspaceId) }))
   } else if (operation === 'clear') {

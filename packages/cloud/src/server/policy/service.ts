@@ -11,7 +11,8 @@ import type { CloudPolicy } from './policy'
 export function createEntitlementService(
   database: Kysely<CloudDatabase>,
   policy: CloudPolicy,
-  technicalMaximumFileBytes: number
+  technicalMaximumFileBytes: number,
+  technicalMaximumParticipants = Number.MAX_SAFE_INTEGER
 ) {
   const quota = createStorageQuotaService(database)
   return {
@@ -43,9 +44,15 @@ export function createEntitlementService(
         policy.boolean(CLOUD_FEATURE_KEYS.revisionHistory, false, context),
         policy.number(CLOUD_FEATURE_KEYS.maximumFileBytes, technicalMaximumFileBytes, context),
         policy.number(CLOUD_FEATURE_KEYS.maximumStorageBytes, Number.MAX_SAFE_INTEGER, context),
-        policy.number(CLOUD_FEATURE_KEYS.maximumParticipants, Number.MAX_SAFE_INTEGER, context),
+        policy.number(
+          CLOUD_FEATURE_KEYS.maximumParticipants,
+          technicalMaximumParticipants,
+          context
+        ),
         quota.snapshot(workspaceId)
       ])
+      // Technical limits are ceilings: an entitlement can lower them but never raise them.
+      const participants = Math.min(technicalMaximumParticipants, maximumParticipants)
       return {
         features: {
           capabilityLinks,
@@ -58,8 +65,7 @@ export function createEntitlementService(
         limits: {
           maximumFileBytes: Math.min(technicalMaximumFileBytes, maximumFileBytes),
           maximumStorageBytes: maximumStorage === Number.MAX_SAFE_INTEGER ? null : maximumStorage,
-          maximumParticipants:
-            maximumParticipants === Number.MAX_SAFE_INTEGER ? null : maximumParticipants
+          maximumParticipants: participants === Number.MAX_SAFE_INTEGER ? null : participants
         },
         usage: {
           committedStorageBytes: usage.committedBytes,

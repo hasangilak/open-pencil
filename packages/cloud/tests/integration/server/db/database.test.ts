@@ -7,6 +7,7 @@ import {
   PostgresAdapter,
   PostgresIntrospector,
   PostgresQueryCompiler,
+  sql,
   type Dialect
 } from 'kysely'
 
@@ -24,6 +25,20 @@ function testDatabase() {
 }
 
 describe('Cloud database', () => {
+  test('stamps timestamp defaults when a row is written, not when the migration ran', async () => {
+    const runtime = await createCloudTestDatabase()
+    try {
+      const fixed = await sql<{ table: string; column: string; fallback: string }>`
+        select table_name as "table", column_name as "column", column_default as fallback
+        from information_schema.columns
+        where table_schema = 'public' and data_type like 'timestamp%' and column_default like '''%'
+      `.execute(runtime.database)
+      expect(fixed.rows).toEqual([])
+    } finally {
+      await runtime.close()
+    }
+  })
+
   test('runs migrations and application queries in embedded PostgreSQL', async () => {
     const runtime = await createCloudTestDatabase()
     try {
