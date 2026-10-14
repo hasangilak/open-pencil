@@ -21,5 +21,18 @@
   "noSelectionComponents": "選択したレイヤーから {framework} コンポーネントを生成します。",
   "writeJSX": "JSX を書く",
   "canvasChangedExpression": "キャンバスでは {value} になりました。式は書かれたまま残しています。",
-  "canvasChangedOrder": "キャンバスではこれらのレイヤーの順序が変わりました。コードは書かれたまま残しています。"
+  "canvasChangedOrder": "キャンバスではこれらのレイヤーの順序が変わりました。コードは書かれたまま残しています。",
+  "exportAsCode": "コードとして書き出す",
+  "exportReactApp": "React アプリ (.zip)",
+  "checkScreens": "画面をチェック",
+  "checkingScreens": "画面をチェックしています…",
+  "screensMatch": {
+    "many": "{count} 個の画面すべてがデザインと一致しています"
+  },
+  "screensDiffer": "{total} 個中 {matching} 個の画面がデザインと一致しています",
+  "screenMatches": "デザインと一致",
+  "screenDifferences": {
+    "many": "{count} 件の差異"
+  },
+  "screenNotCompared": "比較できませんでした"
 }

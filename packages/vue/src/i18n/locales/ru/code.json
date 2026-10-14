@@ -21,5 +21,22 @@
   "noSelectionComponents": "Компоненты {framework} создаются для выбранных слоёв.",
   "writeJSX": "Написать JSX",
   "canvasChangedExpression": "На холсте теперь {value}; выражение оставлено как написано.",
-  "canvasChangedOrder": "На холсте эти слои теперь в другом порядке; код оставлен как написан."
+  "canvasChangedOrder": "На холсте эти слои теперь в другом порядке; код оставлен как написан.",
+  "exportAsCode": "Экспорт в код",
+  "exportReactApp": "Приложение React (.zip)",
+  "checkScreens": "Проверить экраны",
+  "checkingScreens": "Проверка экранов…",
+  "screensMatch": {
+    "one": "Экран совпадает с дизайном",
+    "few": "Все {count} экрана совпадают с дизайном",
+    "many": "Все {count} экранов совпадают с дизайном"
+  },
+  "screensDiffer": "С дизайном совпадает экранов: {matching} из {total}",
+  "screenMatches": "Совпадает с дизайном",
+  "screenDifferences": {
+    "one": "{count} отличие",
+    "few": "{count} отличия",
+    "many": "{count} отличий"
+  },
+  "screenNotCompared": "Не удалось сравнить"
 }

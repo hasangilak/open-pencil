@@ -21,6 +21,7 @@ import type { CommandPaletteGroup, CommandPaletteItem, MenuEntry } from '@open-p
 import { shortcutPlatform, useEditorCommands, useI18n } from '@open-pencil/vue'
 
 import { openTour } from '@/app/demo/document'
+import { exportReactAppFromMenu } from '@/app/document/export/react/notify'
 import { useEditorStore } from '@/app/editor/active-store'
 import { openVariablesDialog } from '@/app/editor/tokens/dialog'
 import { openSettingsDialog } from '@/app/settings/dialog'
@@ -109,6 +110,7 @@ export function useAppMenu() {
     'save-as': 'saveAs',
     'save-to-storage': 'saveToStorage',
     'export-selection': 'exportSelection',
+    'export-react-app': 'exportReactApp',
     autosave: 'autosave',
     close: 'closeTab',
     copy: 'copy',
@@ -192,6 +194,7 @@ export function useAppMenu() {
     'export-svg': () => exportSelection('svg'),
     'export-pptx': () => exportSelection('pptx'),
     'export-fig': () => exportSelection('fig'),
+    'export-react-app': () => void exportReactAppFromMenu(store, { scope: 'document' }),
     ...createSharedEditorMenuActions(setTheme)
   }
 

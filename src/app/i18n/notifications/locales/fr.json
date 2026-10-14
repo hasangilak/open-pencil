@@ -29,5 +29,6 @@
   "openQueuedFilesFailed": "Impossible d’ouvrir les fichiers transmis à OpenPencil : {error}",
   "tokensLeftOut": "Non inclus dans la feuille de style : {names}.",
   "designTokensLeftOut": "Exclus des design tokens : {names}.",
-  "designTokensImported": "{count} design tokens importés."
+  "designTokensImported": "{count} design tokens importés.",
+  "noScreensToExport": "Aucun cadre à exporter. Chaque cadre de premier niveau devient un écran de l’app."
 }

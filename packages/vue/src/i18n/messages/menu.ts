@@ -20,6 +20,7 @@ export const menuMessageDefaults = {
   exportSelectionAsSVG: 'Export selection as SVG',
   exportSelectionAsPPTX: 'Export selection as PPTX',
   exportSelectionAsFig: 'Export selection as .fig',
+  exportReactApp: 'Export as React app…',
   autosave: 'Auto-save to local file',
   closeTab: 'Close tab',
 

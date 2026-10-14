@@ -29,5 +29,6 @@
   "openQueuedFilesFailed": "Die an OpenPencil übergebenen Dateien konnten nicht geöffnet werden: {error}",
   "tokensLeftOut": "Nicht im Stylesheet enthalten: {names}.",
   "designTokensLeftOut": "Nicht in den Design-Tokens enthalten: {names}.",
-  "designTokensImported": "{count} Design-Tokens importiert."
+  "designTokensImported": "{count} Design-Tokens importiert.",
+  "noScreensToExport": "Keine Frames zum Exportieren. Jeder Frame auf oberster Ebene wird ein Screen der App."
 }

@@ -1,6 +1,6 @@
 ---
 title: Exporting
-description: Export images, SVG, and .fig subsets, and open .fig or .pen documents in OpenPencil.
+description: Export images, SVG, .fig subsets, and React apps, and open .fig or .pen documents in OpenPencil.
 ---
 
 # Exporting
@@ -27,6 +27,18 @@ You can add multiple export settings to export the same node at different scales
 | Properties panel | Click "Export" button | Click "Export" button |
 
 The exported file is saved via a native dialog (desktop) or browser download.
+
+## React App Export
+
+Export a design as a React and Tailwind CSS app, the same project [`openpencil export -f react`](/programmable/cli/exporting#react-project-export) writes. Each top-level frame becomes a screen, each component a React component, and variables become Tailwind theme tokens. The app is saved as a ZIP named after the document; unzip it and run `npm install && npm run dev`.
+
+| What to export | How |
+|----------------|-----|
+| The page on screen | With nothing selected, click **React app (.zip)** under Export as code in the Export section |
+| Any page | Right-click it in the Pages panel <kbd>→</kbd> Export as React app |
+| Every page | File <kbd>→</kbd> Export as React App… |
+
+**Check screens**, below that button, lays out each screen of the page in the browser and compares it with its frame: positions, sizes, colors, and type, and the colors again in each variable mode. It lists each screen as matching the design or with its number of differences.
 
 ## Copy/Paste as
 

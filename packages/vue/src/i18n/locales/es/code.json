@@ -21,5 +21,20 @@
   "noSelectionComponents": "Los componentes de {framework} se generan para las capas seleccionadas.",
   "writeJSX": "Escribir JSX",
   "canvasChangedExpression": "El lienzo tiene ahora {value}; la expresión se mantiene tal como está escrita.",
-  "canvasChangedOrder": "El lienzo ordena ahora estas capas de otra forma; el código se mantiene tal como está escrito."
+  "canvasChangedOrder": "El lienzo ordena ahora estas capas de otra forma; el código se mantiene tal como está escrito.",
+  "exportAsCode": "Exportar como código",
+  "exportReactApp": "App de React (.zip)",
+  "checkScreens": "Comprobar pantallas",
+  "checkingScreens": "Comprobando pantallas…",
+  "screensMatch": {
+    "one": "La pantalla coincide con el diseño",
+    "many": "Las {count} pantallas coinciden con el diseño"
+  },
+  "screensDiffer": "{matching} de {total} pantallas coinciden con el diseño",
+  "screenMatches": "Coincide con el diseño",
+  "screenDifferences": {
+    "one": "{count} diferencia",
+    "many": "{count} diferencias"
+  },
+  "screenNotCompared": "No se pudo comparar"
 }

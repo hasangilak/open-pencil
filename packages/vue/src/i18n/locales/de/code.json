@@ -21,5 +21,20 @@
   "noSelectionComponents": "{framework}-Komponenten werden für die ausgewählten Ebenen erzeugt.",
   "writeJSX": "JSX schreiben",
   "canvasChangedExpression": "Auf der Arbeitsfläche jetzt {value}; der Ausdruck bleibt, wie er geschrieben ist.",
-  "canvasChangedOrder": "Auf der Arbeitsfläche sind diese Ebenen jetzt anders angeordnet; der Code bleibt, wie er geschrieben ist."
+  "canvasChangedOrder": "Auf der Arbeitsfläche sind diese Ebenen jetzt anders angeordnet; der Code bleibt, wie er geschrieben ist.",
+  "exportAsCode": "Als Code exportieren",
+  "exportReactApp": "React-App (.zip)",
+  "checkScreens": "Screens prüfen",
+  "checkingScreens": "Screens werden geprüft…",
+  "screensMatch": {
+    "one": "Der Screen entspricht dem Design",
+    "many": "Alle {count} Screens entsprechen dem Design"
+  },
+  "screensDiffer": "{matching} von {total} Screens entsprechen dem Design",
+  "screenMatches": "Entspricht dem Design",
+  "screenDifferences": {
+    "one": "{count} Abweichung",
+    "many": "{count} Abweichungen"
+  },
+  "screenNotCompared": "Konnte nicht verglichen werden"
 }

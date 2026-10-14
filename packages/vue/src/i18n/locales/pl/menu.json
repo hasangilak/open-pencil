@@ -78,5 +78,6 @@
   "exportSelectionAsSVG": "Eksportuj zaznaczenie jako SVG",
   "exportSelectionAsPPTX": "Eksportuj zaznaczenie jako PPTX",
   "exportSelectionAsFig": "Eksportuj zaznaczenie jako .fig",
+  "exportReactApp": "Eksportuj jako aplikację React…",
   "togglePreview": "Podgląd"
 }

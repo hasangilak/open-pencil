@@ -13,6 +13,7 @@ import { computed, ref, watch, type ComponentPublicInstance } from 'vue'
 import type { SceneNode } from '@open-pencil/scene-graph'
 import { PageListRoot, useFlatReorderDrag, useI18n, useInlineRename } from '@open-pencil/vue'
 
+import { exportReactAppFromMenu } from '@/app/document/export/react/notify'
 import { useActiveEditorStoreRef } from '@/app/editor/active-store'
 import { presenceByPage } from '@/app/presence/registry'
 import { appPreferences } from '@/app/settings/preferences/store'
@@ -73,6 +74,11 @@ watch(pageInput, (input) => {
 function startRename(pg: PageItem, renamePage: (pageId: string, name: string) => void) {
   setPageActions(renamePage)
   rename.start(pg.id, pg.name)
+}
+
+function exportPageAsReactApp(pageId: string) {
+  const store = storeRef.value
+  if (store) void exportReactAppFromMenu(store, { scope: 'page', pageId })
 }
 
 function pageDropPosition(pg: PageItem): 'before' | 'after' | undefined {
@@ -184,6 +190,15 @@ function setupPageRowRef(
                   >
                     <icon-lucide-pencil :class="menuCls.icon" />
                     <span>{{ pageMessages.rename }}</span>
+                  </ContextMenuItem>
+                  <ContextMenuItem
+                    v-if="!isDivider(pg)"
+                    data-test-id="pages-context-export-react"
+                    :class="menuCls.item"
+                    @select="exportPageAsReactApp(pg.id)"
+                  >
+                    <icon-lucide-download :class="menuCls.icon" />
+                    <span>{{ pageMessages.exportReactApp }}</span>
                   </ContextMenuItem>
                   <ContextMenuItem
                     data-test-id="pages-context-delete"

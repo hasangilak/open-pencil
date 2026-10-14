@@ -68,6 +68,10 @@
         ]
       },
       {
+        "id": "export-react-app",
+        "label": "Export as React App…"
+      },
+      {
         "type": "separator"
       },
       {

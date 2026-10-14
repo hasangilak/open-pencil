@@ -29,5 +29,6 @@
   "openQueuedFilesFailed": "Не удалось открыть файлы, переданные OpenPencil: {error}",
   "tokensLeftOut": "Не вошли в таблицу стилей: {names}.",
   "designTokensLeftOut": "Не вошли в дизайн-токены: {names}.",
-  "designTokensImported": "Импортировано дизайн-токенов: {count}."
+  "designTokensImported": "Импортировано дизайн-токенов: {count}.",
+  "noScreensToExport": "Нет фреймов для экспорта. Каждый фрейм верхнего уровня становится экраном приложения."
 }

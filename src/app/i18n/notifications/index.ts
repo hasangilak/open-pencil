@@ -35,7 +35,8 @@ export const notificationMessageDefaults = {
   deepLinkPickerDismissed: 'Link cancelled: no file was chosen.',
   deepLinkCancelled: params('Link cancelled: expected a file ending in “{file}”.'),
   deepLinkNodeNotFound: params('Node “{node}” was not found in “{file}”.'),
-  openQueuedFilesFailed: params('Could not open the files handed to OpenPencil: {error}')
+  openQueuedFilesFailed: params('Could not open the files handed to OpenPencil: {error}'),
+  noScreensToExport: 'No frames to export. Each top-level frame becomes a screen of the app.'
 } as const
 
 const localeLoaders = {

@@ -29,5 +29,6 @@
   "openQueuedFilesFailed": "OpenPencil に渡されたファイルを開けませんでした: {error}",
   "tokensLeftOut": "スタイルシートに含まれていません: {names}",
   "designTokensLeftOut": "デザイントークンに含まれていません: {names}",
-  "designTokensImported": "{count} 個のデザイントークンを読み込みました。"
+  "designTokensImported": "{count} 個のデザイントークンを読み込みました。",
+  "noScreensToExport": "書き出すフレームがありません。最上位の各フレームがアプリの画面になります。"
 }

@@ -29,5 +29,6 @@
   "openQueuedFilesFailed": "No se pudieron abrir los archivos entregados a OpenPencil: {error}",
   "tokensLeftOut": "No incluido en la hoja de estilos: {names}.",
   "designTokensLeftOut": "No incluidos en los design tokens: {names}.",
-  "designTokensImported": "Se importaron {count} design tokens."
+  "designTokensImported": "Se importaron {count} design tokens.",
+  "noScreensToExport": "No hay marcos que exportar. Cada marco de nivel superior se convierte en una pantalla de la app."
 }

@@ -21,5 +21,20 @@
   "noSelectionComponents": "Les composants {framework} sont générés pour les calques sélectionnés.",
   "writeJSX": "Écrire du JSX",
   "canvasChangedExpression": "Le canevas indique maintenant {value} ; l’expression reste telle qu’écrite.",
-  "canvasChangedOrder": "Le canevas ordonne maintenant ces calques autrement ; le code reste tel qu’écrit."
+  "canvasChangedOrder": "Le canevas ordonne maintenant ces calques autrement ; le code reste tel qu’écrit.",
+  "exportAsCode": "Exporter en code",
+  "exportReactApp": "App React (.zip)",
+  "checkScreens": "Vérifier les écrans",
+  "checkingScreens": "Vérification des écrans…",
+  "screensMatch": {
+    "one": "L’écran correspond au design",
+    "many": "Les {count} écrans correspondent au design"
+  },
+  "screensDiffer": "{matching} écrans sur {total} correspondent au design",
+  "screenMatches": "Correspond au design",
+  "screenDifferences": {
+    "one": "{count} différence",
+    "many": "{count} différences"
+  },
+  "screenNotCompared": "Comparaison impossible"
 }

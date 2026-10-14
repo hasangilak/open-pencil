@@ -78,5 +78,6 @@
   "exportSelectionAsSVG": "Экспортировать выделение как SVG",
   "exportSelectionAsPPTX": "Экспортировать выделение как PPTX",
   "exportSelectionAsFig": "Экспортировать выделение как .fig",
+  "exportReactApp": "Экспортировать как приложение React…",
   "togglePreview": "Просмотр"
 }

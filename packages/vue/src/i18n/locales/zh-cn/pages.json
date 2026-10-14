@@ -7,5 +7,6 @@
   "goToPage": "转到页面…",
   "recentPage": "最近",
   "currentPage": "当前页面",
-  "pageNameLabel": "页面名称"
+  "pageNameLabel": "页面名称",
+  "exportReactApp": "导出为 React 应用"
 }

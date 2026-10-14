@@ -21,5 +21,18 @@
   "noSelectionComponents": "为所选图层生成 {framework} 组件。",
   "writeJSX": "编写 JSX",
   "canvasChangedExpression": "画布上现在是 {value}；表达式保持原样。",
-  "canvasChangedOrder": "画布上这些图层的顺序已改变；代码保持原样。"
+  "canvasChangedOrder": "画布上这些图层的顺序已改变；代码保持原样。",
+  "exportAsCode": "导出为代码",
+  "exportReactApp": "React 应用 (.zip)",
+  "checkScreens": "检查屏幕",
+  "checkingScreens": "正在检查屏幕…",
+  "screensMatch": {
+    "many": "全部 {count} 个屏幕与设计一致"
+  },
+  "screensDiffer": "{total} 个屏幕中有 {matching} 个与设计一致",
+  "screenMatches": "与设计一致",
+  "screenDifferences": {
+    "many": "{count} 处差异"
+  },
+  "screenNotCompared": "无法比较"
 }

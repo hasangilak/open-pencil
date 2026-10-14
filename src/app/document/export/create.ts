@@ -11,6 +11,7 @@ import {
   saveExportedFile,
   type ExportedFile
 } from '@/app/document/export/files'
+import { createReactAppExportActions } from '@/app/document/export/react/actions'
 import type { ExportOptions } from '@/app/document/export/types'
 import { trackDocumentFormat } from '@/app/telemetry'
 
@@ -116,6 +117,7 @@ export function createDocumentExportActions(
     listSelectionExportFormats,
     exportTarget,
     exportTargets,
-    exportSelection
+    exportSelection,
+    ...createReactAppExportActions(editor, state, downloadBlob)
   }
 }

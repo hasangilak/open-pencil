@@ -21,5 +21,22 @@
   "noSelectionComponents": "Komponenty {framework} są generowane dla zaznaczonych warstw.",
   "writeJSX": "Napisz JSX",
   "canvasChangedExpression": "Na płótnie jest teraz {value}; wyrażenie pozostaje bez zmian.",
-  "canvasChangedOrder": "Na płótnie te warstwy są teraz w innej kolejności; kod pozostaje bez zmian."
+  "canvasChangedOrder": "Na płótnie te warstwy są teraz w innej kolejności; kod pozostaje bez zmian.",
+  "exportAsCode": "Eksportuj jako kod",
+  "exportReactApp": "Aplikacja React (.zip)",
+  "checkScreens": "Sprawdź ekrany",
+  "checkingScreens": "Sprawdzanie ekranów…",
+  "screensMatch": {
+    "one": "Ekran zgadza się z projektem",
+    "few": "Wszystkie {count} ekrany zgadzają się z projektem",
+    "many": "Wszystkie {count} ekranów zgadza się z projektem"
+  },
+  "screensDiffer": "{matching} z {total} ekranów zgadza się z projektem",
+  "screenMatches": "Zgadza się z projektem",
+  "screenDifferences": {
+    "one": "{count} różnica",
+    "few": "{count} różnice",
+    "many": "{count} różnic"
+  },
+  "screenNotCompared": "Nie udało się porównać"
 }

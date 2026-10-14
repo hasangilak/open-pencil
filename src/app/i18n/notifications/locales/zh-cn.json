@@ -29,5 +29,6 @@
   "openQueuedFilesFailed": "无法打开传递给 OpenPencil 的文件：{error}",
   "tokensLeftOut": "未写入样式表：{names}",
   "designTokensLeftOut": "未写入设计令牌：{names}",
-  "designTokensImported": "已导入 {count} 个设计令牌。"
+  "designTokensImported": "已导入 {count} 个设计令牌。",
+  "noScreensToExport": "没有可导出的画框。每个顶层画框都会成为应用的一个屏幕。"
 }

@@ -441,3 +441,9 @@ zh-cn:storage.cloudDescription
 zh-cn:storage.waitlistJoinedDetail
 zh-cn:storage.waitlistOpenWebsite
 zh-cn:storage.waitlistUnavailable
+ja:menu.exportReactApp
+ja:pages.exportReactApp
+ja:code.exportReactApp
+zh-cn:menu.exportReactApp
+zh-cn:pages.exportReactApp
+zh-cn:code.exportReactApp

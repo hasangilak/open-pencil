@@ -112,6 +112,11 @@ export const APP_MENU_SCHEMA = [
           }
         ]
       },
+      {
+        id: 'export-react-app',
+        label: 'Export as React App…',
+        palette: { icon: 'download', keywords: ['code', 'tailwind', 'zip'] }
+      },
       { type: 'separator' },
       { id: 'autosave', label: 'Autosave', checkbox: true },
       { id: 'close', label: 'Close Tab', shortcut: 'MOD+W' },

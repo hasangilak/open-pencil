@@ -29,5 +29,6 @@
   "openQueuedFilesFailed": "Nie udało się otworzyć plików przekazanych do OpenPencil: {error}",
   "tokensLeftOut": "Pominięte w arkuszu stylów: {names}.",
   "designTokensLeftOut": "Pominięte w tokenach projektowych: {names}.",
-  "designTokensImported": "Zaimportowano tokeny projektowe: {count}."
+  "designTokensImported": "Zaimportowano tokeny projektowe: {count}.",
+  "noScreensToExport": "Brak ramek do eksportu. Każda ramka najwyższego poziomu staje się ekranem aplikacji."
 }

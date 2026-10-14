@@ -78,5 +78,6 @@
   "exportSelectionAsSVG": "Esporta selezione come SVG",
   "exportSelectionAsPPTX": "Esporta selezione come PPTX",
   "exportSelectionAsFig": "Esporta selezione come .fig",
+  "exportReactApp": "Esporta come app React…",
   "togglePreview": "Anteprima"
 }
