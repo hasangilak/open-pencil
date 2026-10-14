@@ -46,6 +46,8 @@ export function createAutomationToolHandler(makeFigma: FigmaFactory) {
       agentFinished(target.store, session, {
         reply,
         pageId: target.pageId,
+        // `switch_page`, or a script that sets `figma.currentPage`, moves the session's calls.
+        switchedTo: response.pageId === target.pageId ? undefined : response.pageId,
         nodeIds: touchedNodeIds(target.store, toolArgs, response.result),
         edited: response.edited
       })
@@ -57,7 +59,7 @@ export function createAutomationToolHandler(makeFigma: FigmaFactory) {
     target: AutomationTarget,
     toolName: string,
     toolArgs: Record<string, unknown>
-  ): Promise<{ result: unknown; edited: boolean }> {
+  ): Promise<{ result: unknown; edited: boolean; pageId: string }> {
     const def = ALL_TOOLS.find((t) => t.name === toolName && isToolExposed(t, 'mcp'))
     if (!def) throw new Error(`Unknown tool: ${toolName}`)
     const store = target.store
@@ -93,7 +95,8 @@ export function createAutomationToolHandler(makeFigma: FigmaFactory) {
       store.requestRender()
       store.flashNodes(extractNodeIds(result))
     }
-    return { result, edited: def.mutates }
+    // Where the call left `figma.currentPage`.
+    return { result, edited: def.mutates, pageId: figma.currentPageId }
   }
 }
 

@@ -6,6 +6,7 @@ import {
   MCP_AGENT_GONE_MS,
   MCP_AGENT_IDLE_MS,
   agentFinished,
+  agentPageId,
   agentStarted,
   endAgentSession,
   readAgentSession,
@@ -84,6 +85,20 @@ describe('MCP sessions as agents', () => {
     expect(agents()[0]).toMatchObject({ pageId: other.id, cursor: { pageId: other.id } })
   })
 
+  test('a session switches only to pages, not to other layers a call names', () => {
+    const frame = store.graph.createNode('FRAME', pageId(), {})
+    const reply = agentStarted(store, claude, pageId())
+    agentFinished(store, claude, {
+      pageId: pageId(),
+      switchedTo: frame.id,
+      nodeIds: [],
+      edited: true,
+      reply
+    })
+    expect(agentPageId(store, claude)).toBeUndefined()
+    expect(agents()[0]).toMatchObject({ pageId: pageId() })
+  })
+
   test('pages and the document are not layers a call works on', () => {
     const node = store.graph.createNode('RECTANGLE', pageId(), {})
     expect(
@@ -152,5 +167,21 @@ describe("the app's own ACP and Pi chats", () => {
     expect(status(pi)).toBe('thinking')
     agentFinished(store, pi, { pageId: pageId(), nodeIds: [card.id], edited: true, reply: next })
     expect(status(pi)).toBe('editing')
+  })
+
+  test('a page switch that lands after its reply ended leaves the next reply on your page', () => {
+    const other = store.graph.addPage('Other').id
+    const late = agentStarted(store, pi, pageId())
+    restAgents('harness')
+
+    agentFinished(store, pi, {
+      pageId: pageId(),
+      switchedTo: other,
+      nodeIds: [],
+      edited: true,
+      reply: late
+    })
+
+    expect(agentPageId(store, pi)).toBeUndefined()
   })
 })

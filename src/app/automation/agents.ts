@@ -36,6 +36,8 @@ interface SessionAgent {
   kind: AgentSession['kind']
   /** Counts the times its chat's replies ended; a tool call from an earlier reply is ignored. */
   replies: number
+  /** The page its calls work on since it switched pages; until then, the page on screen. */
+  pageId?: string
   idleTimer?: ReturnType<typeof setTimeout>
   goneTimer?: ReturnType<typeof setTimeout>
 }
@@ -124,22 +126,48 @@ export function agentStarted(store: EditorStore, session: AgentSession, pageId: 
 }
 
 /**
+ * The page a session's calls work on in this document when they name none: the one it last
+ * switched to, while that page exists. Undefined until then, so they work on the page on screen.
+ */
+export function agentPageId(store: EditorStore, session: AgentSession): string | undefined {
+  const pageId = sessions.get(session.session)?.get(store)?.pageId
+  return pageId && store.graph.getNode(pageId)?.type === 'CANVAS' ? pageId : undefined
+}
+
+/**
  * A session's tool call finished: its agent points at the layers the call read or changed, so
- * people see the context it works with, and edits show as editing.
+ * people see the context it works with, and edits show as editing. A call that switched pages,
+ * as `switch_page` does, moves the session's later calls to `switchedTo`; the view stays.
  */
 export function agentFinished(
   store: EditorStore,
   session: AgentSession,
-  work: { pageId: string; nodeIds: readonly string[]; edited: boolean; reply: number }
+  work: {
+    pageId: string
+    switchedTo?: string
+    nodeIds: readonly string[]
+    edited: boolean
+    reply: number
+  }
 ): void {
   const agent = sessionAgent(store, session)
   // A call that was running when its chat's reply ended lands without bringing the agent back
   // or moving it away from what a later reply works on.
   if (work.reply !== agent.replies) return
-  const placement = agentPlacement(store, work.nodeIds, work.pageId)
+  const switchedTo =
+    work.switchedTo && store.graph.getNode(work.switchedTo)?.type === 'CANVAS'
+      ? work.switchedTo
+      : undefined
+  if (switchedTo) {
+    agent.pageId = switchedTo
+    // Its cursor leaves the page it switched from until it works on the new one.
+    agent.handle.update({ cursor: undefined, selection: undefined })
+  }
+  const pageId = switchedTo ?? work.pageId
+  const placement = agentPlacement(store, work.nodeIds, pageId)
   agent.handle.update({
     status: work.edited ? 'editing' : 'thinking',
-    pageId: work.pageId,
+    pageId,
     ...placement
   })
   restartTimers(store, session.session, agent)
@@ -147,7 +175,8 @@ export function agentFinished(
 
 /**
  * The app's own ACP or Pi chat ended a reply, finished, stopped, or failed: that chat's agents
- * rest now rather than when their idle timer runs out. Only the app's chats send these kinds
+ * rest now rather than when their idle timer runs out, and, like the built-in chat's runs, its
+ * next reply starts on the page on screen. Only the app's chats send these kinds
  * (`src/app/integrations/mcp`), so no outside MCP client is touched.
  */
 export function restAgents(kind: Exclude<AgentSession['kind'], 'mcp'>): void {
@@ -156,6 +185,7 @@ export function restAgents(kind: Exclude<AgentSession['kind'], 'mcp'>): void {
       if (agent.kind !== kind) continue
       clearTimeout(agent.idleTimer)
       agent.replies++
+      agent.pageId = undefined
       agent.handle.update({ status: 'idle', cursor: undefined, selection: undefined })
     }
   }

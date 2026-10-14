@@ -1,6 +1,6 @@
 import type { FigmaAPI } from '@open-pencil/core/figma-api'
 
-import { endAgentSession } from '@/app/automation/agents'
+import { agentPageId, endAgentSession, readAgentSession } from '@/app/automation/agents'
 import {
   handleActivateDocument,
   handleGetSettings,
@@ -91,7 +91,13 @@ export function createAutomationCommandHandlers(makeFigma: FigmaFactory) {
     }
 
     const rawArgs = isUnknownRecord(args) ? args : {}
-    const target = resolveAutomationTarget(store, rawArgs)
+    // An agent session's calls work on the page it switched to, unless they name a page.
+    const session = readAgentSession(rawArgs.agent)
+    const target = resolveAutomationTarget(
+      store,
+      rawArgs,
+      session ? (tabStore) => agentPageId(tabStore, session) : undefined
+    )
     return handleTargetCommand(target, command, stripAutomationTargetArgs(rawArgs))
   }
 

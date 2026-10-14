@@ -20,6 +20,8 @@ How the built-in AI chat turns a message into edits, how a reply ends, and how w
 
 The chat's agent is one presence entry per document (`presence/registry.ts`). It shows as thinking when the run starts and points at the layers each call changed, on whichever page they are. With Follow agents on, following starts with the run and ends when the agent rests and none of your other agents is at work. An agent you chose to follow keeps you with it while it rests.
 
+ACP and Pi chats have no `Run`. Their calls reach the canvas through the MCP server as an agent session (`src/app/automation/agents.ts`), which works on the page on screen until its `switch_page` moves it. Unlike a run's, that switch leaves your view where it is; Follow agents takes you there once the agent edits on that page. The switch lasts until the reply ends (`restAgents`), so each reply starts on the page on screen, as a run does.
+
 ## A tool call
 
 `tools/index.ts` runs every call through `executeCall`:

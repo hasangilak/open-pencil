@@ -75,7 +75,9 @@ function readString(value: unknown): string | undefined {
 
 export function resolveAutomationTarget(
   activeStore: EditorStore,
-  args: AutomationTargetArgs | undefined
+  args: AutomationTargetArgs | undefined,
+  /** The page to work on when `page_id` names none, such as the one an agent switched to. */
+  defaultPageId?: (store: EditorStore) => string | undefined
 ): AutomationTarget {
   const requestedDocumentId = readString(args?.document_id)
   const tab = requestedDocumentId ? getTabById(requestedDocumentId) : getTabForStore(activeStore)
@@ -88,7 +90,7 @@ export function resolveAutomationTarget(
   }
 
   const requestedPageId = readString(args?.page_id)
-  const pageId = requestedPageId ?? tab.store.state.currentPageId
+  const pageId = requestedPageId ?? defaultPageId?.(tab.store) ?? tab.store.state.currentPageId
   const page = tab.store.graph.getNode(pageId)
   if (page?.type !== 'CANVAS') {
     throw new Error(`Page "${pageId}" not found in document "${tab.id}"`)
