@@ -24,8 +24,6 @@ import { booleanOperationPaints, createBooleanOperation } from '#core/editor/str
 import { wrapNodes } from '#core/editor/structure/container-wrap'
 import { ungroupNode } from '#core/editor/structure/group'
 import { setDefaultPageBackground } from '#core/figma-api/page-backgrounds'
-import { iconify, type IconProvider } from '#core/icons'
-import type { RasterCodec } from '#core/io/formats/raster'
 import { createSVGNodes } from '#core/io/formats/svg'
 import { textAutoResizeChanges } from '#core/layout/text-auto-resize'
 import { reconcileVariableLayouts } from '#core/layout/variables'
@@ -33,6 +31,7 @@ import { documentFontStatus, type DocumentFontStatus } from '#core/text/font/sta
 import { fontManager } from '#core/text/fonts'
 
 import { combineComponentsAsVariants, componentFromNode, exposeInstanceSwap } from './components'
+import { FigmaHostServices } from './host'
 import type {
   FigmaBooleanOperationNode,
   FigmaComponentNode,
@@ -57,7 +56,6 @@ import {
   type FigmaFontName,
   type NodeProxyHost
 } from './proxy'
-import type { ExportImageOptions } from './types'
 
 const noop = () => undefined
 
@@ -89,7 +87,7 @@ export { computeImageHash }
 
 // TODO(figma-api): Implement the full official PluginAPI interface once our compatibility
 // layer covers all required node-specific return types and unsupported APIs are modeled explicitly.
-export class FigmaAPI implements NodeProxyHost {
+export class FigmaAPI extends FigmaHostServices implements NodeProxyHost {
   readonly graph: SceneGraph
   private _currentPageId: string
   private _selection: FigmaNodeProxy[] = []
@@ -102,6 +100,7 @@ export class FigmaAPI implements NodeProxyHost {
   readonly mixed = MIXED
 
   constructor(graph: SceneGraph) {
+    super()
     this.graph = graph
     startPendingLayout(graph)
     const pages = graph.getPages()
@@ -590,11 +589,4 @@ export class FigmaAPI implements NodeProxyHost {
   triggerUndo(): void {
     return undefined
   }
-
-  exportImage?: (nodeIds: string[], options: ExportImageOptions) => Promise<Uint8Array | null>
-  /** Where icon tools search and fetch icons; hosts may pass a self-hosted or bundled set. */
-  icons: IconProvider = iconify
-  rasterCodec?: RasterCodec
-  /** The document as it was before the current AI run first edited `pageId`, or null if unedited. */
-  changeBaseline?: (pageId: string) => SceneGraph | null
 }

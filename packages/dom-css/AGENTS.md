@@ -3,9 +3,9 @@
 DOM, CSS, HTML, JSX, and Tailwind projection between documents and SceneGraph, with browser and headless CSS runtimes. Sources are grouped by direction:
 
 - `src/import/` — HTML, CSS, JSX, and Tailwind to SceneGraph, including the `jsx-runtime` entries and CSS value parsing.
-- `src/export/` — SceneGraph to HTML, Tailwind JSX, and Storybook: projection, CSS formatting, the HTML bundle, and printers. `src/export/index.ts` is the `./export` entry.
+- `src/export/` — SceneGraph to HTML, Tailwind JSX, Storybook, and a React and Tailwind project (`src/export/project/`, with its `openpencil.json` manifest): projection, CSS formatting, the HTML bundle, and printers. `src/export/index.ts` is the `./export` entry, which also declares what a host's browser reports when it lays markup out (`src/export/measure.ts`).
 - `src/behaviours/` — what a behaviour means in the DOM, shared by preview and export: controls and layer roles, story props, and state styles compiled from variants. Exported from `./export`.
-- `src/runtime/` — browser and headless CSS runtimes.
+- `src/runtime/` — browser and headless CSS runtimes, and the browser measurer checks of code against its design use (`src/runtime/measure.ts`, from `./browser`).
 - `src/tokens/` — variables as design tokens: CSS custom property names, Tailwind namespaces from `twirlwind`, and units. Shared by both directions and exported from `./export`.
 
 Rules:

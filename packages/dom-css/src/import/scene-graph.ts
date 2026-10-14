@@ -22,6 +22,7 @@ import {
   inheritedTextStyle,
   type ParentFlow
 } from './flow'
+import { applyPositioning } from './insets'
 import {
   blockRichText,
   characterStyleFromCSS,
@@ -193,16 +194,6 @@ function applyFlexGap(node: SceneNode, style: DesignStyleDeclaration): void {
   node.counterAxisSpacing = (isHorizontal ? rowGap : columnGap) ?? (isWrapped ? (gap ?? 0) : 0)
 }
 
-function applyPositioning(node: SceneNode, style: DesignStyleDeclaration): void {
-  const position = pickStyle(style, 'position')
-  if (position === 'absolute' || position === 'fixed') node.layoutPositioning = 'ABSOLUTE'
-
-  const left = firstCSSNumber(style, 'left')
-  const top = firstCSSNumber(style, 'top')
-  if (left !== null) node.x = left
-  if (top !== null) node.y = top
-}
-
 /**
  * What CSS adds outside an explicit size: padding and borders, unless `box-sizing: border-box`
  * puts them inside it as auto layout does.
@@ -306,7 +297,7 @@ function applyElementStyle(
 ): void {
   setNodeBox(node, style)
   applyBoxSizing(node, style)
-  applyPositioning(node, style)
+  applyPositioning(node, style, graph.getNode(node.parentId ?? ''))
   applyPadding(node, style)
 
   const fills = fillsFromStyle(style, 'background-color')
@@ -359,9 +350,13 @@ const CHARACTER_FIELDS = [
   'textCase'
 ] as const satisfies readonly (keyof CSSCharacterStyle)[]
 
-function applyTextStyle(node: SceneNode, style: DesignStyleDeclaration): void {
+function applyTextStyle(
+  node: SceneNode,
+  style: DesignStyleDeclaration,
+  parent: SceneNode | undefined
+): void {
   setNodeBox(node, style)
-  applyPositioning(node, style)
+  applyPositioning(node, style, parent)
   Object.assign(node, characterStyleFromCSS(style, pick(node, CHARACTER_FIELDS)))
 
   const opacity = parseCSSNumber(pickStyle(style, 'opacity'))
@@ -391,7 +386,7 @@ function createRichTextNode(
   parentFlow: ParentFlow
 ): SceneNode {
   const node = graph.createNode('TEXT', parentId, { name: 'Text' })
-  applyTextStyle(node, style)
+  applyTextStyle(node, style, graph.getNode(parentId))
   const blocks = holdsTextBlocks(element, isPlainElement, isInlineElement)
   const base = pick(node, CHARACTER_FIELDS)
   const rich = blocks ? blockRichText(element, style, base) : inlineRichText(element, style, base)
@@ -429,7 +424,7 @@ function createTextNode(
   parentFlow: ParentFlow
 ) {
   const node = graph.createNode('TEXT', parentId, { name: text.slice(0, 32) || 'Text', text })
-  applyTextStyle(node, style)
+  applyTextStyle(node, style, graph.getNode(parentId))
   applyFlowSizing(graph, node, style, display, parentFlow)
   return node
 }

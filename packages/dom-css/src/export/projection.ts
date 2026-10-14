@@ -15,6 +15,7 @@ import { DesignTokens, type CSSModes } from '../tokens/references'
 import type { DesignDocument, DesignElement, DesignNode, DesignStyleDeclaration } from '../types'
 import { cssColor, dropShadowToCSS, effectsToCSS, fillToCSS, strokeColorToCSS } from './css'
 import { addGridContainer, addGridPlacement } from './grid'
+import { addPositioning, placesLayersOutsideLayout } from './placement'
 import { textCaseToCSS, textElementContent } from './text'
 
 const DOM_CSS_PLUGIN_ID = 'open-pencil-dom-css'
@@ -120,28 +121,6 @@ function stretches(
   if (parent.layoutMode === 'GRID') return true
   const mainAxis = parent.layoutMode === 'HORIZONTAL' ? 'width' : 'height'
   return axis !== mainAxis
-}
-
-/**
- * Place a layer at its coordinates when its parent does not lay it out: it is absolutely
- * positioned, or its parent frame has no auto layout. A frame without auto layout becomes the
- * containing block of the children it places.
- */
-function addPositioning(
-  style: DesignStyleDeclaration,
-  node: SceneNode,
-  parent: SceneNode | undefined
-): void {
-  const placed =
-    node.layoutPositioning === 'ABSOLUTE' ||
-    (parent !== undefined && parent.type !== 'CANVAS' && parent.layoutMode === 'NONE')
-  if (placed) {
-    style.position = 'absolute'
-    style.left = `${node.x}px`
-    style.top = `${node.y}px`
-  } else if (node.layoutMode === 'NONE' && node.type !== 'TEXT' && node.childIds.length > 0) {
-    style.position = 'relative'
-  }
 }
 
 function addSizeConstraints(style: DesignStyleDeclaration, node: SceneNode, css: FieldCSS): void {
@@ -353,6 +332,9 @@ function styleFromTextNode(
   addSize(style, node, parent, css)
   addPositioning(style, node, parent)
   addLayoutChild(style, node, parent)
+  // Text set to fill across its auto layout parent stretches as a frame does.
+  const alignSelf = alignToCSS(node.layoutAlignSelf)
+  if (alignSelf) style['align-self'] = alignSelf
   if (resolveNodeTextDirection(node) === 'RTL') style.direction = 'rtl'
   const color = fillToCSS(node.fills.at(0))
   style.color = color ? css('fills/0/color', color) : cssColor(BLACK)
@@ -360,7 +342,10 @@ function styleFromTextNode(
   style['font-size'] = css('fontSize', px(node.fontSize))
   style['font-weight'] = String(node.fontWeight)
   if (node.italic) style['font-style'] = 'italic'
-  if (node.lineHeight !== null) style['line-height'] = css('lineHeight', px(node.lineHeight))
+  // Auto line height is the font's own, which CSS spells `normal`; written out, so a page's
+  // own line height, such as Tailwind's preflight 1.5, does not take its place.
+  style['line-height'] =
+    node.lineHeight === null ? 'normal' : css('lineHeight', px(node.lineHeight))
   if (node.letterSpacing !== 0)
     style['letter-spacing'] = css('letterSpacing', px(node.letterSpacing))
   if (node.textAlignHorizontal !== 'LEFT')
@@ -490,6 +475,8 @@ function sceneNodeToDesignNode(
   }
 
   const style = styleFromSceneNode(node, parent, css)
+  if (!isPositioned(style.position) && placesLayersOutsideLayout(graph, node))
+    style.position = 'relative'
   const shader = layerShader(graph, node)
   if (shader) addShaderLayerStyle(style)
   return {

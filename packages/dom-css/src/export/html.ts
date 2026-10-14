@@ -1,6 +1,12 @@
 import { twirl } from 'twirlwind'
 
-import type { DesignDocument, DesignElement, DesignNode, DesignText } from '../types'
+import type {
+  DesignDocument,
+  DesignElement,
+  DesignNode,
+  DesignStyleDeclaration,
+  DesignText
+} from '../types'
 
 export interface SerializeHTMLOptions {
   style?: 'inline' | 'tailwind'
@@ -66,13 +72,42 @@ function serializeStyle(node: DesignElement): string | undefined {
     .join('; ')
 }
 
+/**
+ * A font size on Tailwind's spacing scale, such as `text-8` for 32px, which twirlwind writes
+ * but Tailwind v4 compiles to nothing: its font sizes are the `--text-*` theme scale alone.
+ */
+const SPACING_FONT_SIZE = /^text-\d+(\.\d+)?$/
+
+/**
+ * Declarations as Tailwind utilities, as twirlwind writes them, with any font size off the
+ * theme's scale written as an arbitrary value, so every utility compiles, and a `normal` line
+ * height kept as CSS means it (`packages/dom-css/tests/export/tailwind-jsx/compiles.test.ts`).
+ */
+export function tailwindUtilities(
+  style: DesignStyleDeclaration,
+  themeVariables: readonly string[] = []
+): string[] {
+  const css = Object.entries(style)
+    .filter(([, value]) => value !== '')
+    .map(([property, value]) => `${property}: ${value}`)
+    .join('; ')
+  if (!css) return []
+  const fontSize = style['font-size']?.trim()
+  const normalLineHeight = style['line-height']?.trim() === 'normal'
+  return splitWhitespace(twirl(css, { theme: { variables: themeVariables } })).map((utility) => {
+    if (fontSize && SPACING_FONT_SIZE.test(utility))
+      return `text-[${fontSize.replaceAll(' ', '_')}]`
+    // Tailwind's `leading-normal` is 1.5, not the font's own line height CSS calls `normal`.
+    if (normalLineHeight && utility === 'leading-normal') return 'leading-[normal]'
+    return utility
+  })
+}
+
 export function serializeTailwindClasses(
   node: DesignElement,
   themeVariables: readonly string[] = []
 ): string | undefined {
-  const style = serializeStyle(node)
-  if (!style) return undefined
-  const className = twirl(style, { theme: { variables: themeVariables } })
+  const className = tailwindUtilities(node.inlineStyle ?? {}, themeVariables).join(' ')
   return className.length > 0 ? className : undefined
 }
 

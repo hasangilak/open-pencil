@@ -23,6 +23,8 @@ const defaultNames = new Set([
   'lint_fix',
   // Lets the model look at what it built.
   'export_image',
+  // Lets the model check that the code a screen exports draws what the design does.
+  'check_code',
   'list_pages',
   'create_page'
 ])

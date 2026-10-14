@@ -18,7 +18,7 @@ const JSX_ATTRIBUTE_NAMES: Record<string, string> = {
 }
 
 /** React spells SVG's dashed attributes in camel case, such as `fillRule`; data and ARIA stay. */
-function jsxAttributeName(name: string): string {
+export function jsxAttributeName(name: string): string {
   const named = JSX_ATTRIBUTE_NAMES[name]
   if (named) return named
   if (name.startsWith('data-') || name.startsWith('aria-')) return name

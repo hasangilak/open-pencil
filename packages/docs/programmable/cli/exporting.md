@@ -211,6 +211,26 @@ Stories carry `parameters.design` entries for [`@storybook/addon-designs`](https
 
 `-o` names the output directory. A `.openpencil-stories.json` manifest there records which document, as a path relative to the output directory, and which page generated each story and design image; commit it with the stories. An export replaces the files that a previous export of the same document generated there, including those of components since deleted or renamed; with `--page`, only that page's. It refuses, before changing anything, to overwrite any other file — a hand-written story, another document's, or a stray image. A one-page export whose file names shifted onto another page's stories asks for a full export instead. Without the manifest, existing stories count as someone else's, so remove them before exporting again. `--watch` keeps the command running and re-exports whenever the document is saved, so Storybook's hot reload follows the design; a save that cannot be read is reported and the watch continues. A missing `--page` or a `--font-policy strict` substitution still ends the command.
 
+## React Project Export
+
+Write the document as a Vite app of React components styled with Tailwind CSS v4:
+
+```sh
+openpencil export design.fig -f react                     # the app in ./react-app/
+openpencil export design.fig -f react -o web --page "Marketing"
+openpencil export design.pen -f react --node 1:23         # one frame as the app's only screen
+openpencil export design.fig -f react --fonts none        # load fonts from Google Fonts
+```
+
+- Each component set and component becomes a component in `src/components/`, with its variants, text, boolean, and slot properties as props. Components with a behaviour, such as a button, switch, or tabs, render Radix primitives, as in the [Storybook export](#storybook-export).
+- Each top-level frame, and each frame in a top-level section, becomes a screen in `src/screens/` that uses those components wherever the design places their instances. A screen fills the viewport: the frame's width becomes the page's and its height the least the page takes, so at the frame's own width the page lays out as the design does. `src/App.tsx` shows one screen per `#/route`.
+- The variables become `src/tokens.css`: Tailwind theme tokens and custom properties, with each mode under its condition. A mode switched by an attribute opens with its link, such as `?data-theme=dark`; a media-query mode follows the reader's system.
+- Placed layers keep their constraints: Left, Right, Center, Left and right, and Scale pin them to the edges of the frame they sit in, so they move and resize with it.
+- Images are files under `public/assets/images/`, and vector layers inline SVG. Font files ship in `src/fonts/` unless `--fonts none` loads them from Google Fonts.
+- `openpencil.json` is the manifest that ties the code to the design: each screen's and component's file, the layer it draws, its props, and how each mode switches. Agents on either side read it to check one against the other.
+
+`npm install && npm run dev` starts the app; `npm run build` type-checks and builds it. The [`check_code` tool](../coding-agents#from-design-to-code) checks a screen's code against its design in a browser.
+
 ## Live App Mode
 
 Omit the file to export from the running app:

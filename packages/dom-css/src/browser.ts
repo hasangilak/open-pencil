@@ -8,6 +8,11 @@ import { createBrowserCSSRuntime, type BrowserCSSRuntimeOptions } from './runtim
 import type { CSSComputeOptions, DesignDocument } from './types'
 
 export { Fragment, jsx, jsxs } from './import/jsx/core'
+export {
+  markupClassNames,
+  measureMarkupInBrowser,
+  type MeasureMarkupOptions
+} from './runtime/measure'
 export type { JSXChild, JSXElementProps, JSXStyleInput, JSXTag } from './import/jsx/core'
 
 export interface BrowserToDesignDocumentOptions extends BrowserCSSRuntimeOptions {

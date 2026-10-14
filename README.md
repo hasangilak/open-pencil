@@ -34,7 +34,7 @@ Requires macOS 13 or later with current Safari updates, Windows 10 or later, or 
 - **Components and variants** — create reusable components, group variants into component sets, insert local assets as instances, and switch variants from the inspector
 - **Working controls** — give a component a Reka UI behaviour (switch, slider, tabs, text field, …) and preview it live over the canvas, with real inputs, focus, and keyboard
 - **Image vectorization** — convert image layers into editable vector layers with Recraft or fal.ai
-- **Design-to-code export** — export selections as JSX/Tailwind, generate token outputs, and map designs into component-oriented code workflows
+- **Design-to-code export** — export a design as a React and Tailwind app with its components, screens, and light/dark tokens, check the code against the design in a browser, export selections as JSX/Tailwind, and generate token outputs
 - **Vue SDK for custom editors** — headless components and composables for embedding OpenPencil into other apps or building workflow-specific editing surfaces. [Read the SDK docs →](https://openpencil.dev/programmable/sdk/)
 - **Real-time collaboration** — P2P via WebRTC, no server, no account. Cursors, presence, follow mode, voice calls
 - **Auto layout & CSS Grid** — flex and grid layout via Yoga WASM, with gap, padding, alignment, track sizing
@@ -78,13 +78,14 @@ openpencil query design.fig "//SECTION//TEXT"        # Text inside sections
 
 ### Export, convert, and import
 
-Render to PNG, JPG, WEBP, SVG, PDF, PPTX, HTML, JSX, Storybook stories, or `.fig`, convert between document formats, and turn HTML/CSS into editable layers:
+Render to PNG, JPG, WEBP, SVG, PDF, PPTX, HTML, JSX, Storybook stories, a React app, or `.fig`, convert between document formats, and turn HTML/CSS into editable layers:
 
 ```sh
 openpencil export design.fig                  # PNG
 openpencil export design.fig -f jpg -s 2      # JPG at 2x
 openpencil export design.fig -f tailwind-jsx  # Tailwind JSX
 openpencil export design.fig -f storybook     # Storybook stories per component
+openpencil export design.fig -f react         # React + Tailwind app with openpencil.json
 openpencil convert design.pen design.fig      # Between document formats
 openpencil import card.html --css card.css    # HTML/CSS → editable .fig
 ```

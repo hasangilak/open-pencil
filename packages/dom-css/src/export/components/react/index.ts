@@ -1,5 +1,6 @@
 import { HEADING_RESET } from '#dom-css/behaviours/reset'
 import { stateStylesToCSS } from '#dom-css/behaviours/states/css'
+import { jsxAttributeName } from '#dom-css/export/tailwind-jsx'
 import dedent from 'dedent'
 import { compact } from 'es-toolkit/array'
 import { omit } from 'es-toolkit/object'
@@ -283,7 +284,7 @@ function designElement(node: ComponentElement, uses: MarkupUses, depth: number):
     ...(root && !INPUT_PROPS[kind] ? [jsx.spread(es.identifier('props'))] : []),
     ...(node.value === undefined ? [] : [jsx.attribute('value', jsx.stringValue(node.value))]),
     ...Object.entries(omit(node.attrs, ['class'])).map(([name, value]) =>
-      jsx.attribute(name, jsx.stringValue(value))
+      jsx.attribute(jsxAttributeName(name), jsx.stringValue(value))
     ),
     ...partAttributes(node, uses),
     jsx.attribute('className', classValue(classNameOf(node, root, uses))),

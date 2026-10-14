@@ -13,9 +13,9 @@ import {
   type WebFontFaceRequest,
   type WebFontFaceResolver
 } from '../bundle'
-import { componentModel, type ComponentGenerator, type ComponentModel } from '../components/model'
+import { componentLibrary } from '../components/library'
+import type { ComponentGenerator, ComponentModel } from '../components/model'
 import { reactComponent } from '../components/react'
-import type { ComponentReferences } from '../components/references'
 import type { ComponentStyling } from '../components/styling'
 import { vueComponent } from '../components/vue'
 import { serializeHTML, serializeNode } from '../html'
@@ -271,43 +271,20 @@ function storyEntries(
   return entries
 }
 
-/**
- * The component each entry's set generates, by set id, built twice: first alone, so each
- * knows its props, then knowing all the others, so an instance of one uses it rather than
- * drawing its layers.
- */
+/** The component each generated entry's set makes, by set id. */
 function generatedModels(
   graph: SceneGraph,
   entries: readonly StoryEntry[],
   vectorElement: VectorElementRenderer | undefined
 ): Map<string, ComponentModel> {
-  // Components are imported by their files' names, so the two always match. A group's item
-  // component gets a file of its own, named apart from every story file.
-  const taken = new Set(entries.map((entry) => entry.file.toLowerCase()))
-  const itemNames = new Map(
-    entries.map((entry) => [
-      entry.file,
-      claimName(`${entry.file}Item`, taken, { key: (name) => name.toLowerCase() })
-    ])
+  // Components are imported by their files' names, so the two always match.
+  const generated = entries.flatMap(({ group, file, generate }) =>
+    generate && group.set ? [{ set: group.set, name: file }] : []
   )
-  const model = (set: SceneNode, file: string, references?: ComponentReferences) =>
-    componentModel(graph, set, {
-      vectorElement,
-      references,
-      name: file,
-      itemName: itemNames.get(file)
-    })
-  const alone = new Map<string, ComponentModel>()
-  for (const { group, file, generate } of entries) {
-    const component = generate && group.set && model(group.set, file)
-    if (group.set && component) alone.set(group.set.id, component)
-  }
-  const models = new Map<string, ComponentModel>()
-  for (const { group, file } of entries) {
-    const component = group.set && alone.has(group.set.id) && model(group.set, file, alone)
-    if (group.set && component) models.set(group.set.id, component)
-  }
-  return models
+  return componentLibrary(graph, generated, {
+    vectorElement,
+    reserved: entries.map((entry) => entry.file)
+  })
 }
 
 /** The folder a document's shared files go in, unless the caller names one. */

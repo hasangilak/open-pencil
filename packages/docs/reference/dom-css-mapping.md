@@ -13,7 +13,7 @@ OpenPencil maps browser-computed DOM/CSS styles into SceneGraph fields through `
 | `flex-wrap: wrap` | `layoutWrap: WRAP` | Counter-axis spacing is preserved when gaps are available. |
 | `gap`, `row-gap`, `column-gap` | `itemSpacing`, `counterAxisSpacing` | Axis-aware: row and column gaps swap meaning for column flex direction. |
 | `padding-*` | `paddingTop/Right/Bottom/Left` | Browser-computed physical values are preferred. |
-| `position: absolute/fixed`, `left`, `top` | `layoutPositioning`, `x`, `y` | Right/bottom constraints are not mapped yet. |
+| `position: absolute/fixed`, `left`, `right`, `top`, `bottom` | `layoutPositioning`, `x`, `y`, `horizontalConstraint`, `verticalConstraint` | Export pins a placed layer as its constraints do: `left`/`top` for Left and Top, `right`/`bottom` for Right and Bottom, `calc(50% ± n)` for Center, both edges without a size for Left and right, and percentages for Scale; an auto layout frame with absolutely placed layers is their containing block. Import reads each back into the constraint; browser-computed insets keep their pixel positions. |
 | `overflow: hidden/clip` | `clipsContent` | Other overflow values are ignored. |
 | `width`, `height`, min/max sizes | node size constraints | Browser-computed pixel values are preferred. |
 | `aspect-ratio` | fallback width/height sizing | Used when one axis is available and the other is `auto`/missing. |
@@ -42,7 +42,7 @@ OpenPencil maps browser-computed DOM/CSS styles into SceneGraph fields through `
 | `font-size` | `fontSize` | Pixel/rem-ish numeric values. |
 | `font-weight` | `fontWeight` | Numeric values. |
 | `font-style: italic` | `italic` | Other styles ignored. |
-| `line-height` | `lineHeight` | Numeric computed values. |
+| `line-height` | `lineHeight` | Numeric computed values; export writes Auto line height as `normal`, the font's own. |
 | `letter-spacing` | `letterSpacing` | Numeric computed values. |
 | `text-align` | horizontal text alignment | Supports center, right, justified; defaults left. |
 | `text-decoration-line` | underline / strikethrough | Decoration style/thickness are not mapped yet. |

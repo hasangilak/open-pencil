@@ -13,6 +13,7 @@ import type { SceneGraphToDesignOptions } from '../projection'
 import { claimName, identifierName } from '../storybook/names'
 import { componentModel, type ComponentGeneratorOptions, type GeneratedComponent } from './model'
 import { reactComponent } from './react'
+import { fillViewport } from './viewport'
 import { vueComponent } from './vue'
 
 /** The frameworks a layer can be generated as a component for. */
@@ -91,7 +92,11 @@ export async function layerMarkup(
   graph: SceneGraph,
   layerIds: readonly string[],
   options: Pick<SceneGraphToDesignOptions, 'vectorElement'> &
-    ComponentGeneratorOptions & { assetBasePath?: string } = {}
+    ComponentGeneratorOptions & {
+      assetBasePath?: string
+      /** Draw each layer as a screen of an exported project draws it, filling the viewport. */
+      fillViewport?: boolean
+    } = {}
 ): Promise<LayerMarkup> {
   const taken = new Set<string>()
   const html: string[] = []
@@ -101,6 +106,7 @@ export async function layerMarkup(
     const layer = graph.getNode(layerId)
     const styles = layer && stateStyles(graph, layer, options)
     if (!layer || !styles) continue
+    if (options.fillViewport) fillViewport(styles.root)
     // Two layers named alike would share class names, and their rules would collide.
     const name = claimName(styles.name, taken, { separator: ' ' })
     const named = { ...styles, name }

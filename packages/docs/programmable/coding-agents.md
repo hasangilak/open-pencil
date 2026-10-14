@@ -77,6 +77,15 @@ Running OpenPencil from source with `bun run dev` starts the companion for you, 
 
 While Claude Code writes a `render` call, the layers it describes appear on the canvas as their JSX arrives, as they do for API models, and the real layers replace that preview once the call runs. Claude Code runs without its own shell, file, or web tools, and edits the canvas only through the companion's MCP server. Your Claude Code settings, hooks, and `CLAUDE.md` are not loaded, and these sessions are not saved to your Claude Code history. The companion listens only on `127.0.0.1` and accepts connections only from the origins you name and only with the token in the pairing link. It uses port 7610 and starts OpenPencil's MCP server on port 7600, so quit the desktop app first, which uses 7600 too.
 
+## From design to code {#from-design-to-code}
+
+Two tools turn a design into an app and check that the app draws what the design does, so a design agent and a coding agent can hand work back and forth without either guessing:
+
+- **`export_react_project`** writes the design as a React and Tailwind CSS app, the same project as [`openpencil export -f react`](cli/exporting#react-project-export), and returns its files and the `openpencil.json` manifest that maps each screen and component to the layer it draws.
+- **`check_code`** lays a screen's code out in a browser inside OpenPencil and compares it with the design: every layer's position, size, fill, text color, font size, and weight at the frame's own width, the colors again in each mode a variable collection switches to, such as Dark, and, at any other widths it is given, whether the page scrolls sideways and which layers reach past the viewport. It lists the largest differences first, with the design's and the code's values.
+
+The loop is: design the screen, run `check_code` with the widths it must work at, fix what it reports in the design, such as a fixed width that should fill its parent, and check again until it passes. Then export the project. The check needs the OpenPencil app, desktop or browser, since it lays code out in a real browser; headless file mode has none.
+
 ## Troubleshooting
 
 - **Shown as not found after installing.** Apps started from the Dock or Start menu do not see every folder your terminal adds to `PATH`. OpenPencil also looks in common global folders for npm, Bun, Volta, mise, and Homebrew; if your package manager installs elsewhere, add that folder to your login shell's `PATH` and restart OpenPencil.

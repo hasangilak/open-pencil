@@ -8,10 +8,11 @@ import {
   htmlToDesignDocument,
   htmlToSceneGraph,
   sceneGraphToDesignDocument,
+  sceneNodeToDesignDocument,
   serializeHTML
 } from '#dom-css/index'
 
-import type { SceneGraph, SceneNode } from '@open-pencil/scene-graph'
+import { SceneGraph, type SceneNode } from '@open-pencil/scene-graph'
 
 import { TEST_COLORS, cardCSS, cardHTML, fixtureCSS, fixtureHTML } from '../helpers'
 
@@ -417,6 +418,50 @@ describe('@open-pencil/dom-css conversion', () => {
     if (roundTripStack?.type !== 'element') return
     expect(roundTripStack.inlineStyle?.['row-gap']).toBe('14px')
     expect(roundTripStack.inlineStyle?.['column-gap']).toBe('24px')
+  })
+
+  it('reads constrained insets back into the positions and constraints they were written from', () => {
+    const source = new SceneGraph()
+    const sourcePage = source.getPages()[0]
+    const card = source.createNode('FRAME', sourcePage.id, {
+      name: 'Card',
+      width: 400,
+      height: 300
+    })
+    const placements = [
+      ['Right', 'MAX', 'MAX', 260, 200],
+      ['Centre', 'CENTER', 'CENTER', 130, 100],
+      ['Stretch', 'STRETCH', 'STRETCH', 20, 30],
+      ['Scale', 'SCALE', 'SCALE', 40, 60]
+    ] as const
+    for (const [name, horizontalConstraint, verticalConstraint, x, y] of placements) {
+      source.createNode('RECTANGLE', card.id, {
+        name,
+        x,
+        y,
+        width: 100,
+        height: 40,
+        horizontalConstraint,
+        verticalConstraint
+      })
+    }
+
+    const graph = designDocumentToSceneGraph(sceneNodeToDesignDocument(source, card.id))
+    const page = graph.getPages()[0]
+    const frame = expectFrame(page ? graph.getChildren(page.id)[0] : undefined)
+    const layers = graph.getChildren(frame.id)
+    for (const [
+      index,
+      [, horizontalConstraint, verticalConstraint, x, y]
+    ] of placements.entries()) {
+      const layer = layers[index]
+      expect(layer?.horizontalConstraint).toBe(horizontalConstraint)
+      expect(layer?.verticalConstraint).toBe(verticalConstraint)
+      expect(layer?.x).toBeCloseTo(x, 1)
+      expect(layer?.y).toBeCloseTo(y, 1)
+      expect(layer?.width).toBeCloseTo(100, 1)
+      expect(layer?.height).toBeCloseTo(40, 1)
+    }
   })
 
   it('maps flex wrapping, align-self, clipping, and absolute positioning', () => {

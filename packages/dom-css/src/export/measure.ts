@@ -1,0 +1,56 @@
+/**
+ * Laying exported markup out in a real browser, as a check of code against its design does:
+ * what a host is asked to render and what it reports back. Hosts with a DOM implement it with
+ * `measureMarkupInBrowser` from `@open-pencil/dom-css/browser`.
+ */
+
+/** Markup to lay out, the stylesheet beside it, and the viewport it is laid out in. */
+export interface MarkupMeasureRequest {
+  html: string
+  /** CSS after Tailwind's, such as the design tokens a project's `tokens.css` holds. */
+  css: string
+  /** Compile the Tailwind utilities the markup names, with `css` in the same build. */
+  tailwind: boolean
+  /** The viewport's width in CSS pixels. */
+  width: number
+  /** Attributes on `<html>`, such as `data-theme="dark"` to show a design mode. */
+  rootAttributes?: Record<string, string>
+  /** Stylesheets that load the fonts the markup's text uses, such as Google Fonts'. */
+  fontStylesheets?: readonly string[]
+}
+
+/** The computed styles a check compares, as the browser reports them. */
+export interface MeasuredStyles {
+  color: string
+  backgroundColor: string
+  fontSize: string
+  fontWeight: string
+  lineHeight: string
+  opacity: string
+}
+
+/** An element's box in CSS pixels from the markup's first element, and its styles. */
+export interface MeasuredElement {
+  tagName: string
+  x: number
+  y: number
+  width: number
+  height: number
+  styles: MeasuredStyles
+  /** Its content is wider than its box, as overflowing or clipped text is. */
+  overflows: boolean
+}
+
+export interface MarkupMeasurement {
+  width: number
+  /** The page's scroll width; more than `width` means the page scrolls sideways. */
+  scrollWidth: number
+  /** The page's height. */
+  height: number
+  /** Every element of the markup, in the order they open. */
+  elements: MeasuredElement[]
+  /** The fonts the page asked for finished loading before it was measured. */
+  fontsLoaded: boolean
+}
+
+export type MarkupMeasurer = (request: MarkupMeasureRequest) => Promise<MarkupMeasurement>

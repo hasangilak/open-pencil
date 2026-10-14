@@ -2,6 +2,7 @@ import type * as DesignTypes from './types'
 
 export { exportHTMLBundle } from './export/bundle'
 export { exportStorybook, STORY_MODES, STORYBOOK_FRAMEWORKS } from './export/storybook/export'
+export { exportReactProject } from './export/project'
 export { serializeHTML, serializeNode } from './export/html'
 export { createBrowserCSSRuntime, createCSSRuntime, createHeadlessCSSRuntime } from './runtime'
 export {

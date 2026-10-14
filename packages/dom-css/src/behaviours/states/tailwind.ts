@@ -1,7 +1,6 @@
-import { splitWhitespace } from '#dom-css/export/html'
+import { splitWhitespace, tailwindUtilities } from '#dom-css/export/html'
 import type { DesignDocument, DesignNode, DesignStyleDeclaration } from '#dom-css/types'
 import { compact } from 'es-toolkit/array'
-import { twirl } from 'twirlwind'
 
 import { cssName, propAttribute } from './names'
 import type { StateCondition, StateElement, StateNode, StateStyles } from './types'
@@ -35,12 +34,7 @@ function variant(condition: StateCondition, group: string | null): string {
 }
 
 function utilities(style: DesignStyleDeclaration, options: StateTailwindOptions): string[] {
-  const css = Object.entries(style)
-    .map(([property, value]) => `${property}: ${value}`)
-    .join('; ')
-  return css
-    ? splitWhitespace(twirl(css, { theme: { variables: options.themeVariables ?? [] } }))
-    : []
+  return tailwindUtilities(style, options.themeVariables)
 }
 
 /** What each element's utilities are written against. */

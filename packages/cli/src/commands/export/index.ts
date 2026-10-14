@@ -18,11 +18,16 @@ import {
 } from '#cli/headless'
 
 import { applyExportFontPolicy, exportFontRoots, FONT_POLICIES } from './font-policy'
+import { exportReactProjectFromFile } from './react'
 import { exportStorybookFromFile } from './storybook'
 
 const io = new IORegistry(BUILTIN_IO_FORMATS)
-// Storybook writes a folder of stories, so it stays a CLI command beside the IO formats.
-const FORMAT_IDS = [...io.listExportFormats('node').map((format) => format.id), 'storybook']
+// Storybook and the React project write folders, so they stay CLI commands beside the IO formats.
+const FORMAT_IDS = [
+  ...io.listExportFormats('node').map((format) => format.id),
+  'storybook',
+  'react'
+]
 const ALL_FORMATS = new Set(FORMAT_IDS.map((id) => id.toUpperCase()))
 const FORMAT_LIST = `${FORMAT_IDS.slice(0, -1).join(', ')}, or ${FORMAT_IDS.at(-1)}`
 
@@ -130,7 +135,8 @@ async function exportViaApp(format: string, args: ExportArgs) {
     format === 'HTML' ||
     format === 'FIG' ||
     format === 'PPTX' ||
-    format === 'STORYBOOK'
+    format === 'STORYBOOK' ||
+    format === 'REACT'
   ) {
     printError(`${format} export is only available in file mode right now.`)
     process.exit(1)
@@ -298,7 +304,7 @@ export default defineCommand({
     page: {
       type: 'string',
       description:
-        'Export a specific page by name (FIG, PPTX, and Storybook default to the whole document)',
+        'Export a specific page by name (FIG, PPTX, Storybook, and React default to the whole document)',
       required: false
     },
     node: {
@@ -330,7 +336,7 @@ export default defineCommand({
     fonts: {
       type: 'string',
       description:
-        'HTML and Storybook font files: assets or none (default: none for HTML, assets for Storybook)'
+        'HTML, Storybook, and React font files: assets or none (default: none for HTML, assets for Storybook and React)'
     },
     framework: {
       type: 'string',
@@ -406,6 +412,8 @@ export default defineCommand({
       await exportViaApp(format, args)
     } else if (format === 'STORYBOOK') {
       await exportStorybookFromFile(args)
+    } else if (format === 'REACT') {
+      await exportReactProjectFromFile(args)
     } else {
       await exportFromFile(format, args)
     }

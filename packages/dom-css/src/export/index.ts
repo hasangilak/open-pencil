@@ -5,14 +5,35 @@ export {
   type SceneGraphToDesignOptions,
   type VectorElementRenderer
 } from './projection'
-export { exportHTMLBundle } from './bundle'
+export { designFontRequests, exportHTMLBundle } from './bundle'
+export type {
+  MarkupMeasurement,
+  MarkupMeasureRequest,
+  MarkupMeasurer,
+  MeasuredElement,
+  MeasuredStyles
+} from './measure'
 export {
   designDocumentToTailwindJSX,
   sceneNodesToTailwindJSX,
   sceneNodesToTailwindJSXWithLayers,
   type TailwindJSXWithLayers
 } from './tailwind-jsx'
-export { serializeHTML } from './html'
+export { serializeHTML, tailwindUtilities } from './html'
+export {
+  exportReactProject,
+  googleFontsURL,
+  screenPath,
+  DESIGN_CODE_MANIFEST_FORMAT,
+  type DesignCodeManifest,
+  type ExportReactProjectOptions,
+  type ManifestCollection,
+  type ManifestComponent,
+  type ManifestMode,
+  type ManifestScreen,
+  type ProjectFile,
+  type ReactProject
+} from './project'
 export {
   LAYER_COMPONENT_FRAMEWORKS,
   layerComponents,
