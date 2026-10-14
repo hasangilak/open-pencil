@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
 
+import { loadLocalHarness, onLocalHarnessPaired, pairedCanvasToken } from '@/app/ai/harness/local'
 import { connectAutomation } from '@/app/automation/bridge/server'
 import type { EditorStore } from '@/app/editor/active-store'
 import { isTauri } from '@/app/tauri/env'
@@ -206,9 +207,12 @@ export function createMCPRuntimeService(dependencies: MCPRuntimeDependencies) {
   }
 }
 
-/** The local server runs with the desktop app, and in development with the dev server. */
+/**
+ * The local server runs with the desktop app, in development with the dev server, and for a
+ * browser tab paired with the Harness companion, which starts one.
+ */
 export function localMCPAvailable(): boolean {
-  return import.meta.env.DEV || isTauri()
+  return import.meta.env.DEV || isTauri() || pairedCanvasToken() !== null
 }
 
 const appMCPRuntime = createMCPRuntimeService({
@@ -221,8 +225,15 @@ const appMCPRuntime = createMCPRuntimeService({
   getHealthFailure: getAutomationHealthFailure
 })
 
+// A pairing link opened in a running tab connects its canvas tools then.
+onLocalHarnessPaired(() => void appMCPRuntime.restart())
+
 export const mcpRuntime = appMCPRuntime.state
 export const refreshMCPRuntime = appMCPRuntime.refresh
 export const restartMCPRuntime = () => appMCPRuntime.restart()
-export const startMCPRuntime = (getStore: () => EditorStore) => appMCPRuntime.start(getStore)
+export async function startMCPRuntime(getStore: () => EditorStore): Promise<MCPRuntimeResult> {
+  // A browser tab reads its Harness pairing first: the companion runs the tab's MCP server.
+  if (!import.meta.env.DEV && !isTauri()) await loadLocalHarness()
+  return appMCPRuntime.start(getStore)
+}
 export const stopMCPRuntime = () => appMCPRuntime.stop()

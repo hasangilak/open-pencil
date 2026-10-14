@@ -15,6 +15,26 @@ interface PendingRequest {
   textId: string
   textStarted: boolean
   reasoningStarted: boolean
+  /** `render` calls whose streaming JSX is drawn on the canvas until their layers exist. */
+  previewCalls: Set<string>
+}
+
+/** Draws a `render` call's JSX on the canvas while its input streams (`createRunPreview`). */
+export type HarnessCanvasPreview = {
+  start(callId: string): void
+  delta(callId: string, text: string): void
+  finish(callId: string): void
+  clear(): void
+}
+
+/**
+ * `render` as each agent names the app's MCP tool: Claude Code joins server and tool with `__`
+ * (`mcp__open-pencil__render`), Pi's MCP adapter with `_` and underscores (`mcp__open_pencil_render`).
+ */
+const RENDER_TOOL_NAME = /^mcp__open[-_]pencil_{1,2}render$/
+
+export function isRenderTool(toolName: string): boolean {
+  return toolName === 'render' || RENDER_TOOL_NAME.test(toolName)
 }
 
 function requestID(): string {
@@ -37,7 +57,11 @@ function close(pending: PendingRequest): void {
   controller?.close()
 }
 
-function mapEvent(event: HarnessTurnEvent, pending: PendingRequest): UIMessageChunk[] {
+function mapEvent(
+  event: HarnessTurnEvent,
+  pending: PendingRequest,
+  preview: HarnessCanvasPreview | undefined
+): UIMessageChunk[] {
   const chunks: UIMessageChunk[] = []
   if (event.type === 'text-delta') {
     if (!pending.textStarted) {
@@ -52,7 +76,26 @@ function mapEvent(event: HarnessTurnEvent, pending: PendingRequest): UIMessageCh
       pending.reasoningStarted = true
     }
     chunks.push({ type: 'reasoning-delta', id, delta: event.text })
+  } else if (event.type === 'tool-input-start') {
+    chunks.push({
+      type: 'tool-input-start',
+      toolCallId: event.toolCallId,
+      toolName: event.toolName,
+      providerExecuted: true
+    })
+    if (preview && isRenderTool(event.toolName)) {
+      pending.previewCalls.add(event.toolCallId)
+      preview.start(event.toolCallId)
+    }
+  } else if (event.type === 'tool-input-delta') {
+    chunks.push({
+      type: 'tool-input-delta',
+      toolCallId: event.toolCallId,
+      inputTextDelta: event.delta
+    })
+    if (pending.previewCalls.has(event.toolCallId)) preview?.delta(event.toolCallId, event.delta)
   } else if (event.type === 'tool-call') {
+    // The preview stays until the call's result says its layers are on the canvas.
     chunks.push({
       type: 'tool-input-available',
       toolCallId: event.toolCallId,
@@ -67,6 +110,7 @@ function mapEvent(event: HarnessTurnEvent, pending: PendingRequest): UIMessageCh
       output: event.output,
       providerExecuted: true
     })
+    if (pending.previewCalls.delete(event.toolCallId)) preview?.finish(event.toolCallId)
   } else if (event.type === 'error') {
     chunks.push({ type: 'error', errorText: event.message })
   }
@@ -83,7 +127,8 @@ export class HarnessChatTransport implements ChatTransport<UIMessage> {
     private readonly sessionId: string,
     private readonly configuration: HarnessSessionConfiguration,
     private readonly environment: Record<string, string>,
-    private readonly spawnProcess: typeof spawnHarnessProcess = spawnHarnessProcess
+    private readonly spawnProcess: typeof spawnHarnessProcess = spawnHarnessProcess,
+    private readonly preview?: HarnessCanvasPreview
   ) {}
 
   async sendMessages({
@@ -135,6 +180,7 @@ export class HarnessChatTransport implements ChatTransport<UIMessage> {
             // A turn already answered has nothing to stop, and a cancel now would hit the next one.
             if (!this.pending.has(requestId)) return
             cancel()
+            this.preview?.clear()
             emit(pending, { type: 'finish-step' }, { type: 'finish', finishReason: 'stop' })
             close(pending)
           },
@@ -202,7 +248,8 @@ export class HarnessChatTransport implements ChatTransport<UIMessage> {
       reject: () => undefined,
       textId: `text-${id}`,
       textStarted: false,
-      reasoningStarted: false
+      reasoningStarted: false,
+      previewCalls: new Set()
     }
   }
 
@@ -213,13 +260,7 @@ export class HarnessChatTransport implements ChatTransport<UIMessage> {
     const process = await this.ensureProcess()
     const id = requestID()
     return new Promise((resolve, reject) => {
-      this.pending.set(id, {
-        resolve,
-        reject,
-        textId: `text-${id}`,
-        textStarted: false,
-        reasoningStarted: false
-      })
+      this.pending.set(id, { ...this.createPending(id), resolve, reject })
       void process.send({ id, ...request }).catch(reject)
     })
   }
@@ -245,11 +286,12 @@ export class HarnessChatTransport implements ChatTransport<UIMessage> {
         const message = next.value
         if (message.type === 'turn.event') {
           const pending = this.pending.get(message.id)
-          if (pending) emit(pending, ...mapEvent(message.event, pending))
+          if (pending) emit(pending, ...mapEvent(message.event, pending, this.preview))
         } else {
           const pending = this.pending.get(message.id)
           if (pending) {
             this.pending.delete(message.id)
+            if (pending.previewCalls.size) this.preview?.clear()
             if (message.error) {
               const error = new Error(message.error)
               emit(pending, { type: 'error', errorText: error.message })
@@ -280,6 +322,7 @@ export class HarnessChatTransport implements ChatTransport<UIMessage> {
 
   private failAll(error: Error): void {
     if (this.destroyed) return
+    this.preview?.clear()
     this.process = null
     this.sessionCreated = false
     for (const pending of this.pending.values()) {

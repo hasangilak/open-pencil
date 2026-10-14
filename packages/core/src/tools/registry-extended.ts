@@ -28,6 +28,7 @@ import {
   searchIconsTool,
   setBehaviour
 } from './create'
+import { setImageFillFromURL } from './image-url'
 import {
   setBlend,
   setConstraints,
@@ -159,6 +160,7 @@ export const EXTENDED_TOOLS: ToolDef[] = [
   setLocked,
   setStrokeAlign,
   setImageFill,
+  setImageFillFromURL,
   // Structure (advanced)
   cloneNode,
   nodeMove,

@@ -14,6 +14,7 @@ export const WATCH_IGNORED = [
   '**/desktop/**',
   '**/packages/cli/**',
   '**/packages/mcp/**',
+  '**/packages/harness/**',
   '**/packages/docs/**',
   '**/tests/**',
   '**/.github/**',

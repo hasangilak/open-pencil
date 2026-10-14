@@ -67,7 +67,9 @@ export function appSourceConfig(): AppSourceConfig {
       __OPENPENCIL_APP_VERSION__: JSON.stringify(rootManifest.version),
       __OPENPENCIL_LOCAL_AUTOMATION_TOKEN__: JSON.stringify(''),
       __OPENPENCIL_LOCAL_AUTOMATION_URL__: JSON.stringify(''),
-      __OPENPENCIL_LOCAL_AUTOMATION_HTTP_URL__: JSON.stringify('')
+      __OPENPENCIL_LOCAL_AUTOMATION_HTTP_URL__: JSON.stringify(''),
+      __OPENPENCIL_LOCAL_HARNESS_URL__: JSON.stringify(''),
+      __OPENPENCIL_LOCAL_HARNESS_TOKEN__: JSON.stringify('')
     },
     plugins: [
       appRawText(),

@@ -146,6 +146,24 @@ export interface ResolvedWebFont {
   provider: WebFontProviderId
 }
 
+/** The `fetch` a font operation's proxy replaced, kept on the proxy for `fetchPastFontProxy`. */
+const ORIGINAL_FETCH = Symbol('open-pencil.original-fetch')
+type FontProxyFetch = typeof fetch & { [ORIGINAL_FETCH]?: typeof fetch }
+
+/**
+ * `fetch` for a request that is not a font, such as an image a tool downloads: while a font
+ * operation runs, `globalThis.fetch` sends every remote request to the font fetcher.
+ */
+export function fetchPastFontProxy(input: RequestInfo | URL, init?: RequestInit) {
+  const current: FontProxyFetch = globalThis.fetch
+  return (current[ORIGINAL_FETCH] ?? current)(input, init)
+}
+
+function isLoopbackURL(url: string): boolean {
+  const { hostname } = new URL(url)
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
+}
+
 export class WebFontResolver {
   private enabled = new Set<WebFontProviderId>(
     WEB_FONT_PROVIDER_IDS.filter((provider) => DEFAULT_WEB_FONT_PROVIDER_SETTINGS[provider])
@@ -280,7 +298,10 @@ export class WebFontResolver {
     const originalFetch = globalThis.fetch
     const proxyFetch = (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === 'string' || input instanceof URL ? input.toString() : input.url
-      if (url.startsWith('https://') || url.startsWith('http://')) {
+      // The swap is global, so other code's requests made meanwhile pass through it too. Fonts
+      // never come from this computer, so loopback requests, such as a local companion's or the
+      // MCP server's health checks, go out as they were made.
+      if ((url.startsWith('https://') || url.startsWith('http://')) && !isLoopbackURL(url)) {
         signal?.throwIfAborted()
         return (
           this.remoteFetch?.(url, { ...init, signal: signal ?? init?.signal }) ??
@@ -289,6 +310,7 @@ export class WebFontResolver {
       }
       return originalFetch(input, init)
     }
+    Object.defineProperty(proxyFetch, ORIGINAL_FETCH, { value: originalFetch })
     globalThis.fetch = proxyFetch as typeof fetch
 
     try {

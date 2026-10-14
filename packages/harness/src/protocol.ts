@@ -1,8 +1,9 @@
 export type JSONPrimitive = null | boolean | number | string
 export type JSONValue = JSONPrimitive | JSONValue[] | { [key: string]: JSONValue }
 
-export const HARNESS_ADAPTER_IDS = ['pi'] as const
-export const HARNESS_SANDBOX_IDS = ['just-bash'] as const
+export const HARNESS_ADAPTER_IDS = ['pi', 'claude-code'] as const
+/** `none`: the agent gets no shell or files of its own, only the MCP servers it is given. */
+export const HARNESS_SANDBOX_IDS = ['just-bash', 'none'] as const
 
 export type HarnessAdapterID = (typeof HARNESS_ADAPTER_IDS)[number]
 export type HarnessSandboxID = (typeof HARNESS_SANDBOX_IDS)[number]
@@ -49,6 +50,10 @@ export type HarnessRequest =
 export type HarnessTurnEvent =
   | { type: 'text-delta'; text: string }
   | { type: 'reasoning-delta'; text: string }
+  /** A tool call's input begins streaming; `tool-call` follows with the complete input. */
+  | { type: 'tool-input-start'; toolCallId: string; toolName: string }
+  /** The next piece of a streaming tool call's JSON input text. */
+  | { type: 'tool-input-delta'; toolCallId: string; delta: string }
   | { type: 'tool-call'; toolCallId: string; toolName: string; input: JSONValue }
   | { type: 'tool-result'; toolCallId: string; toolName: string; output: JSONValue }
   | { type: 'finish'; finishReason: string }

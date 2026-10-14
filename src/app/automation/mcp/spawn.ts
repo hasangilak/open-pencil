@@ -11,6 +11,7 @@ import {
 } from '@open-pencil/mcp/tools'
 import { randomHex } from '@open-pencil/scene-graph/random'
 
+import { pairedCanvasToken } from '@/app/ai/harness/local'
 import { APP_VERSION } from '@/app/runtime/version'
 import { decodeTauriStderr } from '@/app/shell/ui'
 import { resolvePlatformCommand } from '@/app/tauri/command'
@@ -440,11 +441,18 @@ async function configureDevMCP(): Promise<AutomationServerHandle> {
   return { disconnect: noop, authToken, managed: true }
 }
 
+/** A tab paired with the Harness companion uses the MCP server it started. */
+function pairedServer(): AutomationServerHandle | null {
+  const authToken = pairedCanvasToken()
+  if (authToken) runtimeAutomationAuthToken = authToken
+  return authToken ? { disconnect: noop, authToken, managed: false } : null
+}
+
 async function startMCPIfNeeded(timing: MCPStartupTiming): Promise<AutomationServerHandle | null> {
   runtimeAutomationStartupError = null
   runtimeAutomationStartupFailure = null
   if (import.meta.env.DEV) return configureDevMCP()
-  if (!isTauri()) return null
+  if (!isTauri()) return pairedServer()
 
   const existing = await readExistingServerHandle()
   if (existing) {

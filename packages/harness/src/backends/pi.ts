@@ -32,9 +32,15 @@ function asJSONValue(value: unknown): JSONValue {
   }
 }
 
-function mapPart(part: TextStreamPart<ToolSet>): BackendEvent | undefined {
+export function mapPart(part: TextStreamPart<ToolSet>): BackendEvent | undefined {
   if (part.type === 'text-delta') return { type: 'text-delta', text: part.text }
   if (part.type === 'reasoning-delta') return { type: 'reasoning-delta', text: part.text }
+  if (part.type === 'tool-input-start') {
+    return { type: 'tool-input-start', toolCallId: part.id, toolName: part.toolName }
+  }
+  if (part.type === 'tool-input-delta') {
+    return { type: 'tool-input-delta', toolCallId: part.id, delta: part.delta }
+  }
   if (part.type === 'tool-call') {
     return {
       type: 'tool-call',
@@ -110,6 +116,7 @@ export class PiHarnessBackend implements HarnessBackend {
   }): Promise<BackendSession> {
     const configuration = options.configuration
     if (!configuration) throw new Error('Harness configuration is required')
+    if (configuration.sandbox !== 'just-bash') throw new Error('Pi needs the just-bash sandbox')
     const thinkingLevel =
       typeof configuration.settings?.thinkingLevel === 'string'
         ? (configuration.settings.thinkingLevel as PiThinkingLevel)

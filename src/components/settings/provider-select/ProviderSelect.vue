@@ -11,6 +11,7 @@ import {
 } from '@open-pencil/core/constants'
 import { useAIMessages } from '@open-pencil/vue'
 
+import { localHarness, localHarnessConfigured, probeLocalHarness } from '@/app/ai/harness/local'
 import AppSelect from '@/components/ui/select/AppSelect.vue'
 import type { AppSelectGroup } from '@/components/ui/select/select'
 
@@ -56,9 +57,22 @@ if (IS_TAURI) {
   onMounted(() => {
     void checkMCPHealth()
   })
+} else {
+  onMounted(() => {
+    if (!localHarnessConfigured()) return
+    void checkMCPHealth()
+    void probeLocalHarness()
+  })
 }
 
-const acpAgents = computed(() => (allowAgents && IS_TAURI && mcpAvailable.value ? ACP_AGENTS : []))
+const acpAgents = computed(() => {
+  if (!allowAgents || !mcpAvailable.value) return []
+  if (IS_TAURI) return ACP_AGENTS
+  // The browser runs only Claude Code, through the dev server's Harness companion.
+  return localHarness.value.claudeCode
+    ? ACP_AGENTS.filter((agent) => agent.id === 'claude-code')
+    : []
+})
 
 const providerID = defineModel<AIProviderID>({ required: true })
 const providerDef = computed(

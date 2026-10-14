@@ -70,7 +70,7 @@ Remote servers must use HTTPS. Loopback HTTP endpoints are accepted for local de
 The configurable tool catalog covers these categories; the tools offered to a model depend on your Tool access settings:
 
 - **Create** — frames, shapes, text, components, pages. Renders JSX for complex layouts.
-- **Style** — fills, strokes, effects, opacity, corner radius, blend modes.
+- **Style** — fills, strokes, effects, opacity, corner radius, blend modes, and image fills downloaded from HTTPS URLs (`set_image_fill_from_url`; in the browser the image host must allow cross-origin requests).
 - **Layout** — auto-layout, grid, alignment, spacing, sizing.
 - **Components** — create components, instances, component sets, and slots. Manage overrides. Give components Reka UI behaviours so they work in preview.
 - **Variables** — create/edit variables, collections, modes. Bind to fills.

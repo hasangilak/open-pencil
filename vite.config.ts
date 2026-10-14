@@ -20,6 +20,7 @@ import {
   openPencilAutomationPlugin
 } from './vite/automation'
 import { copyCanvasKitAssetsPlugin } from './vite/canvaskit-assets'
+import { localHarnessRoute, openPencilHarnessPlugin } from './vite/harness'
 import { aiIconCollection } from './vite/icons'
 import { openPencilPwaPlugin } from './vite/pwa'
 import { rawMarkdownPlugin } from './vite/raw-markdown'
@@ -30,6 +31,7 @@ const automationRoute = localAutomationRoute(host)
 
 export default defineConfig(async ({ command }) => {
   await Promise.all([ensureBrandAssets(['web']), ensureDemoDocument()])
+  const harnessRoute = localHarnessRoute(command, host)
   return {
     resolve: {
       alias: createOpenPencilAliases(__dirname)
@@ -40,7 +42,9 @@ export default defineConfig(async ({ command }) => {
       __OPENPENCIL_LOCAL_AUTOMATION_URL__: JSON.stringify(automationRoute.browserURL),
       __OPENPENCIL_LOCAL_AUTOMATION_HTTP_URL__: JSON.stringify(
         automationRoute.browserURL.replace(/^ws/, 'http')
-      )
+      ),
+      __OPENPENCIL_LOCAL_HARNESS_URL__: JSON.stringify(harnessRoute.url),
+      __OPENPENCIL_LOCAL_HARNESS_TOKEN__: JSON.stringify(harnessRoute.token)
     },
     // Dynamic browser fixtures must not trigger a dependency-optimizer reload mid-test.
     optimizeDeps: { include: ['ai/test'] },
@@ -51,6 +55,7 @@ export default defineConfig(async ({ command }) => {
       Icons({ compiler: 'vue3', customCollections: { ai: aiIconCollection() } }),
       Components({ resolvers: [IconsResolver({ prefix: 'icon', customCollections: ['ai'] })] }),
       openPencilAutomationPlugin(command, host),
+      openPencilHarnessPlugin(harnessRoute),
       vue(),
       openPencilPwaPlugin()
     ],

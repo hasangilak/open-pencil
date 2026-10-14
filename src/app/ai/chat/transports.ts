@@ -11,7 +11,7 @@ import type {
 import type { ComputedRef, Ref } from 'vue'
 import { ref } from 'vue'
 
-import { ACP_AGENTS } from '@open-pencil/core/constants'
+import { ACP_AGENTS, IS_TAURI } from '@open-pencil/core/constants'
 import type { ACPAgentID, AIProviderID } from '@open-pencil/core/constants'
 
 import { AgentSetupError, assertAgentReady } from '@/app/ai/agents/readiness'
@@ -373,6 +373,56 @@ export function createChatSessionManager({
     return transport as ChatTransport<UIMessage>
   }
 
+  /**
+   * The browser cannot start Claude Code, so its chat runs through the Harness companion the dev
+   * server started (`vite/harness.ts`). Claude Code edits the canvas through the app's MCP server,
+   * and its streaming `render` input is drawn on the canvas as it arrives.
+   */
+  async function createLocalClaudeCodeTransport(sessionId: string, store: EditorStore) {
+    await destroyAgentTransports()
+    const [{ HarnessChatTransport }, { connectHarnessSocket }, local, { buildPiMCPServers }] =
+      await Promise.all([
+        import('@/app/ai/harness/transport'),
+        import('@/app/ai/harness/socket'),
+        import('@/app/ai/harness/local'),
+        import('@/app/integrations/mcp')
+      ])
+    const connection = local.localHarnessConnection()
+    if (!connection) {
+      throw new Error(
+        'Pair this tab with the local Harness companion: run `openpencil-harness-serve` and open the link it prints.'
+      )
+    }
+    const status = await local.probeLocalHarness()
+    if (!status.reachable) {
+      throw new Error(
+        'The local Harness companion is not running. Start `openpencil-harness-serve`, or `bun run dev` from source.'
+      )
+    }
+    if (!status.claudeCode) {
+      throw new Error(
+        'The local Harness companion cannot find Claude Code. Install it and sign in with `claude`.'
+      )
+    }
+    const transport = new HarnessChatTransport(
+      sessionId,
+      {
+        adapter: 'claude-code',
+        sandbox: 'none',
+        // Claude Code chooses its own model, as it does over ACP.
+        model: 'default',
+        instructions: SYSTEM_PROMPT,
+        // The same HTTP entries serve every Harness backend.
+        mcpServers: await buildPiMCPServers()
+      },
+      {},
+      ({ onUnexpectedClose }) => connectHarnessSocket({ ...connection, onUnexpectedClose }),
+      createRunPreview(store)
+    )
+    harnessTransportInstance = transport
+    return transport as ChatTransport<UIMessage>
+  }
+
   async function createTransport(store: EditorStore, diagnosticContext: AIDiagnosticContext) {
     if (overrideTransport) return overrideTransport()
 
@@ -417,7 +467,10 @@ export function createChatSessionManager({
       let transport: ChatTransport<UIMessage>
       // An ACP or Pi chat's tool calls show as an agent of that kind (`src/app/automation/agents.ts`).
       let agentKind: 'acp' | 'harness' | null = null
-      if (isACPProvider.value) {
+      if (isACPProvider.value && !IS_TAURI && providerID.value === 'acp:claude-code') {
+        agentKind = 'harness'
+        transport = await createLocalClaudeCodeTransport(sessionId, store)
+      } else if (isACPProvider.value) {
         agentKind = 'acp'
         transport = await createActiveACPTransport()
       } else if (isHarnessProvider.value) {

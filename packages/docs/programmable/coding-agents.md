@@ -2,7 +2,7 @@
 
 The OpenPencil desktop app can use a coding agent you already have — Claude Code, Codex, Gemini CLI, or [Pi](#pi) — as its design agent. The agent runs on your computer with your own subscription and chooses its own model; OpenPencil starts it when you send a message, through the [Agent Client Protocol](https://agentclientprotocol.com/) or, for Pi, its Harness companion, and gives it the canvas tools through OpenPencil's local [MCP server](./mcp-server).
 
-Coding agents need the desktop app; the browser cannot start programs on your computer. They take only the **Design agent** role. Visual review, plan reviews, and fast background work need an API model, which guided setup can add for you.
+Coding agents need the desktop app; the browser cannot start programs on your computer. The one exception is [Claude Code in the browser](#claude-code-in-the-browser), through a small companion you start yourself. They take only the **Design agent** role. Visual review, plan reviews, and fast background work need an API model, which guided setup can add for you.
 
 ## What you need
 
@@ -57,6 +57,25 @@ npm install -g @open-pencil/harness
 OpenPencil uses the providers you signed in to in Pi and Pi's default model, so there is no key to paste. Sign in by running `pi` and using `/login`, and pick a default model with `/model`. To use another model in OpenPencil, enter it as `provider/model` in the Pi model's settings. An [AI Gateway](https://vercel.com/ai-gateway) key is optional; when you save one, Pi uses the gateway instead of your Pi sign-ins.
 
 OpenPencil reads only Pi's `settings.json` for the default model; your credentials stay with Pi. Your Pi extensions, themes, and prompt templates are not loaded into OpenPencil's sessions. Pi keeps a conversation's context while it runs; after Pi or OpenPencil restarts, the conversation continues in a fresh Pi session, because Pi's workspace lives in memory.
+
+## Claude Code in the browser {#claude-code-in-the-browser}
+
+The browser app can use Claude Code with your own sign-in through the Harness companion, which runs Claude Code for it and gives it the canvas tools of your open tab.
+
+1. Install Claude Code and sign in by running `claude` and using `/login`.
+2. Install and start the companion, naming the address you open OpenPencil at:
+
+   ```sh
+   npm install -g @open-pencil/harness
+   OPENPENCIL_HARNESS_ORIGINS=https://app.openpencil.dev openpencil-harness-serve
+   ```
+
+3. Open the pairing link it prints. OpenPencil saves the pairing like an API key, so whether it survives a reload follows your browser credential setting.
+4. In **Settings → AI & agents**, edit the Design model and choose **Claude Code** under **Your agents**. The entry appears once the companion has found the `claude` command.
+
+Running OpenPencil from source with `bun run dev` starts the companion for you, so steps 2 and 3 are not needed there; set `OPENPENCIL_DEV_HARNESS=0` to turn it off.
+
+While Claude Code writes a `render` call, the layers it describes appear on the canvas as their JSX arrives, as they do for API models, and the real layers replace that preview once the call runs. Claude Code runs without its own shell, file, or web tools, and edits the canvas only through the companion's MCP server. Your Claude Code settings, hooks, and `CLAUDE.md` are not loaded, and these sessions are not saved to your Claude Code history. The companion listens only on `127.0.0.1` and accepts connections only from the origins you name and only with the token in the pairing link. It uses port 7610 and starts OpenPencil's MCP server on port 7600, so quit the desktop app first, which uses 7600 too.
 
 ## Troubleshooting
 

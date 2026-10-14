@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 
 import { IS_TAURI } from '@open-pencil/core/constants'
 
+import { loadLocalHarness, localHarness } from '@/app/ai/harness/local'
 import {
   designCustomAPIType,
   designCustomBaseURL,
@@ -41,8 +42,14 @@ export const isACPProvider = computed(() => providerID.value.startsWith('acp:'))
 export const isHarnessProvider = computed(() => providerID.value === 'harness:pi')
 export const isAgentProvider = computed(() => isACPProvider.value || isHarnessProvider.value)
 
+// In the browser, Claude Code runs through the local Harness companion instead of ACP: the dev
+// server's, or one the tab paired with.
+if (!IS_TAURI) void loadLocalHarness()
+
 export const isConfigured = computed(() => {
-  if (isACPProvider.value) return IS_TAURI
+  if (isACPProvider.value) {
+    return IS_TAURI || (providerID.value === 'acp:claude-code' && localHarness.value.claudeCode)
+  }
   // Pi can use the CLI's own sign-in, so a key is optional.
   if (isHarnessProvider.value) return IS_TAURI
   if (apiKeyStatus.value !== 'configured') return false

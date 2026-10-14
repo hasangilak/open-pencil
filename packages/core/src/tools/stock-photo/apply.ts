@@ -36,6 +36,36 @@ export interface PhotoResult {
   error?: string
 }
 
+/** Why `node` cannot take a photo fill, or null when it can: a leaf with an area to fill. */
+export function photoTargetError(node: FigmaNodeProxy, label = 'stock photo'): string | null {
+  if (!STOCK_PHOTO_TARGET_TYPES.has(node.type)) {
+    return `"${node.name}" (${node.type}) is not a suitable ${label} target`
+  }
+  if (node.type === 'VECTOR' && (node.vectorNetwork.regions?.length ?? 0) === 0) {
+    return `"${node.name}" has no closed vector regions — use closed area geometry`
+  }
+  if (node.type !== 'BOOLEAN_OPERATION' && node.children.length > 0) {
+    return `"${node.name}" has children — use a leaf image placeholder`
+  }
+  return null
+}
+
+/** Fills `node` with the image, cropped to cover it. */
+export function applyImageFill(figma: FigmaAPI, node: FigmaNodeProxy, bytes: Uint8Array): string {
+  const image = figma.createImage(bytes)
+  node.fills = [
+    {
+      type: 'IMAGE',
+      color: { r: 1, g: 1, b: 1, a: 1 },
+      imageHash: image.hash,
+      imageScaleMode: 'FILL',
+      visible: true,
+      opacity: 1
+    }
+  ]
+  return image.hash
+}
+
 export async function applyPhoto(
   figma: FigmaAPI,
   provider: StockPhotoProvider,
@@ -43,24 +73,8 @@ export async function applyPhoto(
 ): Promise<PhotoResult> {
   const node = figma.getNodeById(req.id)
   if (!node) return { id: req.id, error: 'Not found' }
-
-  if (!STOCK_PHOTO_TARGET_TYPES.has(node.type)) {
-    return {
-      id: req.id,
-      error: `"${node.name}" (${node.type}) is not a suitable stock photo target`
-    }
-  }
-
-  if (node.type === 'VECTOR' && (node.vectorNetwork.regions?.length ?? 0) === 0) {
-    return {
-      id: req.id,
-      error: `"${node.name}" has no closed vector regions — use closed area geometry`
-    }
-  }
-
-  if (node.type !== 'BOOLEAN_OPERATION' && node.children.length > 0) {
-    return { id: req.id, error: `"${node.name}" has children — use a leaf image placeholder` }
-  }
+  const targetError = photoTargetError(node)
+  if (targetError) return { id: req.id, error: targetError }
 
   const perPage = Math.min((req.index ?? 0) + 3, 15)
   const orientation = req.orientation ?? 'landscape'
@@ -85,17 +99,7 @@ export async function applyPhoto(
     return { id: req.id, error: `Download: ${err instanceof Error ? err.message : String(err)}` }
   }
 
-  const image = figma.createImage(imageBytes)
-  node.fills = [
-    {
-      type: 'IMAGE',
-      color: { r: 1, g: 1, b: 1, a: 1 },
-      imageHash: image.hash,
-      imageScaleMode: 'FILL',
-      visible: true,
-      opacity: 1
-    }
-  ]
+  applyImageFill(figma, node, imageBytes)
 
   return {
     id: node.id,

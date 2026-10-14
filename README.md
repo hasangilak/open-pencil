@@ -155,6 +155,8 @@ Pi works too: choose it in guided setup (**Settings → AI & agents → Run guid
    ```
 3. Open the desktop app → <kbd>⌘</kbd><kbd>J</kbd> → select **Claude Code** from the provider dropdown
 
+**Claude Code in the browser:** run `openpencil-harness-serve` from `@open-pencil/harness` and open the pairing link it prints (`bun run dev` does both for you). The browser app then runs Claude Code with your own sign-in and draws its `render` calls on the canvas as they stream. Choose **Claude Code** for the Design model in **Settings → AI & agents**; see [Coding agents](packages/docs/programmable/coding-agents.md#claude-code-in-the-browser).
+
 ### MCP server
 
 Connect Claude Code, Cursor, Windsurf, or any MCP client to inspect, modify, and export design documents headlessly. 100+ tools. [Full docs →](https://openpencil.dev/programmable/mcp-server)

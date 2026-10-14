@@ -1,4 +1,4 @@
-import type { Canvas, Image, Paint } from 'canvaskit-wasm'
+import type { Canvas, Image, Paint, Shader } from 'canvaskit-wasm'
 
 import type { SceneNode, SceneGraph, Fill } from '@open-pencil/scene-graph'
 import { invertGradientTransform } from '@open-pencil/scene-graph/gradient'
@@ -143,8 +143,7 @@ export function applyFill(
   }
 
   if (fill.type.startsWith('GRADIENT') && fill.gradientStops && fill.gradientTransform) {
-    r.applyGradientFill(fill, node, graph)
-    return true
+    return r.applyGradientFill(fill, node, graph)
   }
 
   if (fill.type === 'IMAGE' && fill.imageHash) {
@@ -318,10 +317,10 @@ export function applyGradientFill(
       node,
       graph
     ).color
-): void {
+): boolean {
   const stops = fill.gradientStops
   const t = fill.gradientTransform
-  if (!stops || !t) return
+  if (!stops || !t) return false
   const colors = stops.map((s, index) => {
     const c = resolveStop(s.color, index)
     return r.ck.Color4f(c.r, c.g, c.b, c.a)
@@ -331,13 +330,22 @@ export function applyGradientFill(
   const w = node.width
   const h = node.height
 
-  /** The paint keeps its own reference, so the caller's handle has to go or WASM memory grows. */
-  const setShader = (shader: ReturnType<typeof makeDiamondGradient>) => {
+  /**
+   * The paint keeps its own reference, so the caller's handle has to go or WASM memory grows.
+   * CanvasKit returns null, whatever its types say, for a gradient it cannot build, such as one
+   * whose stops are out of order; that fill then draws nothing instead of failing every frame.
+   */
+  const setShader = (shader: Shader | null): boolean => {
+    if (!shader) {
+      paint.setShader(null)
+      return false
+    }
     try {
       paint.setShader(shader)
     } finally {
       shader.delete()
     }
+    return true
   }
 
   if (fill.type === 'GRADIENT_LINEAR') {
@@ -351,9 +359,9 @@ export function applyGradientFill(
       r.ck.TileMode.Clamp,
       makeGradientLocalMatrix(r, w, h, t)
     )
-    setShader(shader)
+    return setShader(shader)
   } else if (fill.type === 'GRADIENT_DIAMOND') {
-    setShader(makeDiamondGradient(r, colors, positions, makeGradientLocalMatrix(r, w, h, t)))
+    return setShader(makeDiamondGradient(r, colors, positions, makeGradientLocalMatrix(r, w, h, t)))
   } else if (fill.type === 'GRADIENT_RADIAL') {
     // Gradient space is centred on (0.5, 0.5) with radius 0.5; the local matrix takes it to the
     // layer's pixels.
@@ -366,7 +374,7 @@ export function applyGradientFill(
       r.ck.TileMode.Clamp,
       localMatrix
     )
-    setShader(shader)
+    return setShader(shader)
   } else if (fill.type === 'GRADIENT_ANGULAR') {
     const localMatrix = makeGradientLocalMatrix(r, w, h, t)
     const shader = r.ck.Shader.MakeSweepGradient(
@@ -377,8 +385,9 @@ export function applyGradientFill(
       r.ck.TileMode.Clamp,
       localMatrix
     )
-    setShader(shader)
+    return setShader(shader)
   }
+  return false
 }
 
 export function makeImageFillLocalMatrix(

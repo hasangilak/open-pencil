@@ -408,15 +408,19 @@
       "version": "0.16.0",
       "bin": {
         "openpencil-harness": "./dist/stdio.mjs",
+        "openpencil-harness-serve": "./dist/serve.mjs",
       },
       "dependencies": {
         "@ai-sdk/harness": "1.0.138",
         "@ai-sdk/harness-pi": "1.0.140",
         "@ai-sdk/sandbox-just-bash": "1.0.138",
         "@earendil-works/pi-tui": "0.85.1",
+        "@open-pencil/mcp": "workspace:*",
+        "ws": "^8.21.3",
       },
       "devDependencies": {
         "@types/bun": "^1.3.14",
+        "@types/ws": "^8.18.1",
         "typescript": "~5.8.3",
       },
     },
@@ -714,6 +718,7 @@
       "name": "@open-pencil/vite-config",
       "dependencies": {
         "@open-pencil/core": "workspace:*",
+        "@open-pencil/harness": "workspace:*",
         "unplugin-icons": "^23.0.1",
         "unplugin-vue-components": "^31.1.0",
         "vite": "8.1.4",

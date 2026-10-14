@@ -2,6 +2,7 @@ import type {
   HarnessAdapterID,
   HarnessProviderCapability,
   HarnessSessionConfiguration,
+  HarnessTurnEvent,
   JSONValue
 } from '../protocol'
 
@@ -21,13 +22,7 @@ export interface BackendSession {
   destroy(): Promise<void>
 }
 
-export type BackendEvent =
-  | { type: 'text-delta'; text: string }
-  | { type: 'reasoning-delta'; text: string }
-  | { type: 'tool-call'; toolCallId: string; toolName: string; input: JSONValue }
-  | { type: 'tool-result'; toolCallId: string; toolName: string; output: JSONValue }
-  | { type: 'finish'; finishReason: string }
-  | { type: 'error'; message: string }
+export type BackendEvent = HarnessTurnEvent
 
 export interface HarnessBackend {
   readonly id: HarnessAdapterID

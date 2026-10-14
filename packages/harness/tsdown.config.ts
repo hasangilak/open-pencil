@@ -3,7 +3,10 @@ import { defineConfig } from 'tsdown'
 export default defineConfig({
   entry: {
     index: './src/index.ts',
-    stdio: './src/stdio.ts'
+    constants: './src/constants.ts',
+    pairing: './src/pairing.ts',
+    stdio: './src/stdio.ts',
+    serve: './src/serve.ts'
   },
   platform: 'node',
   format: ['esm'],
@@ -13,7 +16,7 @@ export default defineConfig({
   outDir: './dist',
   treeshake: false,
   deps: {
-    neverBundle: [/^@ai-sdk\//, /^node:/],
+    neverBundle: [/^@ai-sdk\//, /^@open-pencil\/mcp/, /^node:/, /^ws$/],
     onlyBundle: false
   }
 })

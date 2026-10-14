@@ -203,3 +203,106 @@ test('a turn the companion could not be sent ends with an error', async () => {
   expect(types.at(-1)).toBe('error')
   await transport.destroy()
 })
+
+test('streamed render input reaches the chat and the canvas preview until its layers exist', async () => {
+  let output: ReadableStreamDefaultController<HarnessSidecarMessage> | undefined
+  const previews: string[] = []
+  const transport = new HarnessChatTransport(
+    'preview-session',
+    { ...configuration, adapter: 'claude-code', sandbox: 'none' },
+    {},
+    async () => ({
+      child: { write: async () => undefined, kill: async () => output?.close() },
+      messages: new ReadableStream({
+        start(controller) {
+          output = controller
+        }
+      }),
+      send: async (request) => {
+        if (!('id' in request) || typeof request.id !== 'string') throw new Error('Invalid request')
+        const id = request.id
+        if (!('method' in request) || request.method !== 'session.turn') {
+          output?.enqueue({ type: 'response', id, result: {} })
+          return
+        }
+        const events = [
+          { type: 'tool-input-start', toolCallId: 'r1', toolName: 'mcp__open-pencil__render' },
+          { type: 'tool-input-delta', toolCallId: 'r1', delta: '{"jsx": "<Frame' },
+          { type: 'tool-input-delta', toolCallId: 'r1', delta: ' w={320} />"}' },
+          {
+            type: 'tool-call',
+            toolCallId: 'r1',
+            toolName: 'mcp__open-pencil__render',
+            input: { jsx: '<Frame w={320} />' }
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'r1',
+            toolName: 'mcp__open-pencil__render',
+            output: { content: [], isError: false }
+          }
+        ] as const
+        for (const event of events) output?.enqueue({ type: 'turn.event', id, event })
+        output?.enqueue({ type: 'response', id, result: { completed: true } })
+      }
+    }),
+    {
+      start: (id) => previews.push(`start:${id}`),
+      delta: (id, text) => previews.push(`delta:${id}:${text}`),
+      finish: (id) => previews.push(`finish:${id}`),
+      clear: () => previews.push('clear')
+    }
+  )
+  const stream = await transport.sendMessages({
+    chatId: 'test',
+    trigger: 'submit-message',
+    messageId: undefined,
+    messages: [{ id: 'user', role: 'user', parts: [{ type: 'text', text: 'Draw a card' }] }],
+    abortSignal: undefined
+  })
+  const chunks = []
+  const reader = stream.getReader()
+  for (let next = await reader.read(); !next.done; next = await reader.read())
+    chunks.push(next.value)
+
+  expect(chunks.filter((chunk) => chunk.type.startsWith('tool-'))).toEqual([
+    {
+      type: 'tool-input-start',
+      toolCallId: 'r1',
+      toolName: 'mcp__open-pencil__render',
+      providerExecuted: true
+    },
+    { type: 'tool-input-delta', toolCallId: 'r1', inputTextDelta: '{"jsx": "<Frame' },
+    { type: 'tool-input-delta', toolCallId: 'r1', inputTextDelta: ' w={320} />"}' },
+    {
+      type: 'tool-input-available',
+      toolCallId: 'r1',
+      toolName: 'mcp__open-pencil__render',
+      input: { jsx: '<Frame w={320} />' },
+      providerExecuted: true
+    },
+    {
+      type: 'tool-output-available',
+      toolCallId: 'r1',
+      output: { content: [], isError: false },
+      providerExecuted: true
+    }
+  ])
+  // The preview holds through the complete call and ends with its result.
+  expect(previews).toEqual([
+    'start:r1',
+    'delta:r1:{"jsx": "<Frame',
+    'delta:r1: w={320} />"}',
+    'finish:r1'
+  ])
+  await transport.destroy()
+})
+
+test('render previews whichever way the agent names the MCP tool', async () => {
+  const { isRenderTool } = await import('@/app/ai/harness/transport')
+  expect(isRenderTool('mcp__open-pencil__render')).toBe(true)
+  expect(isRenderTool('mcp__open_pencil_render')).toBe(true)
+  expect(isRenderTool('render')).toBe(true)
+  expect(isRenderTool('mcp__open-pencil__render_preview')).toBe(false)
+  expect(isRenderTool('mcp__other__render')).toBe(false)
+})
