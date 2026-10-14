@@ -105,6 +105,8 @@ export class DesignTokens {
    * Attributes that put an element in the modes the canvas draws it in, and the modes CSS then
    * applies to it. An exported root takes the editor's active modes; below it, a node changes
    * modes only where it sets one. Only a mode without its own condition can be set this way.
+   * A node that sets the default mode says so too, since the page around it can switch to
+   * another mode, and the stylesheet declares the default under its attribute as well.
    */
   enter(
     node: SceneNode,
@@ -114,11 +116,18 @@ export class DesignTokens {
     const attrs: Record<string, string> = {}
     const modes = new Map(inherited)
     for (const collection of this.#graph.variableCollections.values()) {
-      if (!root && !node.variableModes[collection.id]) continue
+      const pinned = node.variableModes[collection.id]
+      if (!root && !pinned) continue
       const modeId = this.#graph.getNodeVariableModeId(node.id, collection.id)
       const mode = collection.modes.find((candidate) => candidate.modeId === modeId)
-      if (!mode || modeId === inherited.get(collection.id)) continue
-      if (modeId === collection.defaultModeId || mode.condition) continue
+      if (!mode || mode.condition || collection.modes.length < 2) continue
+      // CSS shows the default mode wherever nothing switches it, and any other mode inside the
+      // element that switched to it.
+      const applies =
+        modeId === collection.defaultModeId
+          ? pinned !== modeId
+          : modeId === inherited.get(collection.id)
+      if (applies) continue
       const { name, value } = modeAttribute(collection, mode)
       attrs[name] = value
       modes.set(collection.id, modeId)

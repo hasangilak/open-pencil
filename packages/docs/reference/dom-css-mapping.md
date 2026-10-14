@@ -42,8 +42,8 @@ OpenPencil maps browser-computed DOM/CSS styles into SceneGraph fields through `
 | `font-size` | `fontSize` | Pixel/rem-ish numeric values. |
 | `font-weight` | `fontWeight` | Numeric values. |
 | `font-style: italic` | `italic` | Other styles ignored. |
-| `line-height` | `lineHeight` | Numeric computed values; export writes Auto line height as `normal`, the font's own. |
-| `letter-spacing` | `letterSpacing` | Numeric computed values. |
+| `line-height` | `lineHeight` | Numeric computed values; export writes Auto line height as `normal`, the font's own, or for a text that sizes to one line as the height the canvas lays that line out. |
+| `letter-spacing` | `letterSpacing` | Numeric computed values; Tailwind export writes them as `tracking-[…]`, since Tailwind has no scale for them. |
 | `text-align` | horizontal text alignment | Supports center, right, justified; defaults left. |
 | `text-decoration-line` | underline / strikethrough | Decoration style/thickness are not mapped yet. |
 | `text-transform` | `textCase` | Uppercase, lowercase, and capitalize map to SceneGraph text case. |
@@ -65,7 +65,7 @@ HTML export, Tailwind HTML, and Tailwind JSX (`sceneNodesToTailwindJSX`) share o
 | layer / background blur | `filter` / `backdrop-filter: blur()` | |
 | right-to-left layout or text | `direction: rtl` | |
 | section | `<section>` | |
-| colors | hex, or `rgba()` when translucent | Hex lets Tailwind match its palette. |
+| colors | hex, or `rgba()` when translucent | Tailwind export keeps a color off Tailwind v4's palette as its value, such as `bg-[#7C3AED]`, rather than the v4 shade of a v3 color. |
 
 ## Browser-oracle but not mapped yet
 

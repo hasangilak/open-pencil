@@ -94,9 +94,10 @@ function designSystem(): SceneGraph {
 }
 
 describe('token stylesheet', () => {
-  test('writes defaults to :root and every other mode under its condition', async () => {
+  test('writes defaults to :root, every other mode under its condition, and the default under its attribute', async () => {
     const { css, issues } = await tokenStylesheet(designSystem(), { format: 'css' })
     expect(issues).toEqual([])
+    // A layer set to the default mode keeps it inside a page switched to another one.
     expect(css).toBe(
       dedent`
       :root {
@@ -108,10 +109,22 @@ describe('token stylesheet', () => {
         --spacing-page: clamp(1rem, 4vw, 2rem);
       }
 
+      /* Theme: Light */
+      [data-theme="light"] {
+        --color-primary: var(--color-blue-500);
+        --color-surface: #FFFFFF;
+      }
+
       /* Theme: Dark */
       [data-theme="dark"] {
         --color-primary: var(--color-blue-300);
         --color-surface: #121726;
+      }
+
+      /* Space: Comfortable */
+      [data-space="comfortable"] {
+        --spacing-gutter: 1.5rem;
+        --spacing-page: clamp(1rem, 4vw, 2rem);
       }
 
       /* Space: Compact */

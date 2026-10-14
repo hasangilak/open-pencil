@@ -2,7 +2,7 @@ import { componentSet } from '#dom-css-tests/behaviours/fixtures'
 import { BLUE_500, card, designSystem } from '#dom-css-tests/export/token-fixtures'
 import type { VectorElementRenderer } from '#dom-css/export'
 
-import { emptyBehaviour, type Fill } from '@open-pencil/scene-graph'
+import { emptyBehaviour, withIcon, type Fill } from '@open-pencil/scene-graph'
 
 /** A 1×1 transparent PNG, as an image fill stores it. */
 export const PIXEL_PNG = new Uint8Array([
@@ -16,7 +16,7 @@ const WHITE: Fill = { type: 'SOLID', color: { r: 1, g: 1, b: 1, a: 1 }, opacity:
 /**
  * A small product: the design system's tokens with Light, Dark, and a media-query Contrast
  * mode, a Button set filled with Primary, and a Home screen that uses the button, a card,
- * a photo, an arrow icon, and a badge pinned to its top-right corner.
+ * a photo, an arrow, a Lucide icon, and a badge pinned to its top-right corner.
  */
 export function projectDesign() {
   const graph = designSystem()
@@ -88,6 +88,9 @@ export function projectDesign() {
     fills: [{ ...WHITE, type: 'IMAGE', imageHash: 'pixel', imageScaleMode: 'FILL' }]
   })
   graph.createNode('VECTOR', home.id, { name: 'Arrow', width: 12, height: 12 })
+  const icon = graph.createNode('FRAME', home.id, { name: 'heart', width: 24, height: 24 })
+  graph.updateNode(icon.id, { pluginData: withIcon(icon, { name: 'lucide:heart' }) })
+  graph.createNode('VECTOR', icon.id, { name: 'Vector', width: 20, height: 18 })
   graph.createNode('RECTANGLE', home.id, {
     name: 'Badge',
     x: 1336,

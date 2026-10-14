@@ -1,3 +1,4 @@
+import { drawnLayerPath } from '#dom-css/behaviours/states/layers'
 import type { StateElement } from '#dom-css/behaviours/states/types'
 
 import {
@@ -42,10 +43,13 @@ export function groupItems(
     (child): child is StateElement => child.type === 'element'
   )
   const instances = elements.map((element) => {
-    const path = element.key.split('\0')[0] ?? ''
-    const node = variantIds
-      .map((id) => findLayerByPath(graph, id, path))
-      .find((found) => found?.type === 'INSTANCE')
+    const path = drawnLayerPath(element)
+    const node =
+      path === undefined
+        ? undefined
+        : variantIds
+            .map((id) => findLayerByPath(graph, id, path))
+            .find((found) => found?.type === 'INSTANCE')
     const main = node && instanceMainComponent(graph, node)
     return node && main ? { node, owner: behaviourOwner(graph, main) } : null
   })

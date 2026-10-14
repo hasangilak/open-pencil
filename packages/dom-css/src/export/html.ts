@@ -1,4 +1,4 @@
-import { twirl } from 'twirlwind'
+import { twirl, type ConvertedDeclaration } from 'twirlwind'
 
 import type {
   DesignDocument,
@@ -79,9 +79,37 @@ function serializeStyle(node: DesignElement): string | undefined {
 const SPACING_FONT_SIZE = /^text-\d+(\.\d+)?$/
 
 /**
- * Declarations as Tailwind utilities, as twirlwind writes them, with any font size off the
- * theme's scale written as an arbitrary value, so every utility compiles, and a `normal` line
- * height kept as CSS means it (`packages/dom-css/tests/export/tailwind-jsx/compiles.test.ts`).
+ * Letter spacing on the spacing scale, such as `-tracking-1` for -4px, which twirlwind writes
+ * but Tailwind v4 compiles to nothing: its letter spacings are the `--tracking-*` names alone.
+ */
+const SPACING_TRACKING = /^-?tracking-(\d+(\.\d+)?|px)$/
+
+/** A utility naming a palette shade, such as `bg-violet-600`: its prefix and the shade. */
+const PALETTE_SHADE = /^(.+)-([a-z]+-\d{2,3})$/
+
+const COLOR_PROPERTY = /(^|-)color$|^fill$|^stroke$/
+
+/** A CSS value as a Tailwind arbitrary value, with its spaces as underscores. */
+const arbitrary = (value: string) => `[${value.trim().replaceAll(' ', '_')}]`
+
+/**
+ * A palette shade twirlwind matched from Tailwind v3's hex value, such as `bg-violet-600` for
+ * `#7c3aed`, as the exact color: Tailwind v4 draws its shades in other, `oklch()` colors. Only an
+ * `oklch()` value, or a variable, can be the v4 shade itself.
+ */
+function exactColor(utility: string, converted: readonly ConvertedDeclaration[]): string {
+  const shade = PALETTE_SHADE.exec(utility)
+  const declaration = converted.find((item) => item.className === utility)
+  if (!shade || !declaration || !COLOR_PROPERTY.test(declaration.property)) return utility
+  if (/^(oklch|var)\(/i.test(declaration.value.trim())) return utility
+  return `${shade[1]}-${arbitrary(declaration.value)}`
+}
+
+/**
+ * Declarations as Tailwind utilities, as twirlwind writes them, with any font size or letter
+ * spacing off the theme's scale written as an arbitrary value, so every utility compiles, a
+ * `normal` line height kept as CSS means it, and colors as exact as the design's
+ * (`packages/dom-css/tests/export/tailwind-jsx/compiles.test.ts`).
  */
 export function tailwindUtilities(
   style: DesignStyleDeclaration,
@@ -93,13 +121,16 @@ export function tailwindUtilities(
     .join('; ')
   if (!css) return []
   const fontSize = style['font-size']?.trim()
+  const letterSpacing = style['letter-spacing']?.trim()
   const normalLineHeight = style['line-height']?.trim() === 'normal'
-  return splitWhitespace(twirl(css, { theme: { variables: themeVariables } })).map((utility) => {
-    if (fontSize && SPACING_FONT_SIZE.test(utility))
-      return `text-[${fontSize.replaceAll(' ', '_')}]`
+  const converted = twirl.convert(css, { theme: { variables: themeVariables } })
+  return splitWhitespace(converted.className).map((utility) => {
+    if (fontSize && SPACING_FONT_SIZE.test(utility)) return `text-${arbitrary(fontSize)}`
+    if (letterSpacing && SPACING_TRACKING.test(utility))
+      return `tracking-${arbitrary(letterSpacing)}`
     // Tailwind's `leading-normal` is 1.5, not the font's own line height CSS calls `normal`.
     if (normalLineHeight && utility === 'leading-normal') return 'leading-[normal]'
-    return utility
+    return exactColor(utility, converted.exact)
   })
 }
 

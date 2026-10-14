@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import { switchSet } from '#dom-css-tests/behaviours/fixtures'
 import { fileText } from '#dom-css-tests/helpers'
-import { layerComponents, layerMarkup } from '#dom-css/export'
+import { layerComponents, layerMarkup, type VectorElementRenderer } from '#dom-css/export'
 import { compileTailwindCSS } from '#dom-css/import/tailwind'
 
 import { SceneGraph } from '@open-pencil/scene-graph'
@@ -134,6 +134,34 @@ describe('layers as HTML and CSS', () => {
     // Radius has no spacing scale: `rounded-4` would generate nothing.
     expect(classes).toContain('rounded-2xl')
     expect(await compileTailwindCSS(classes)).toContain('border-radius: var(--radius-2xl)')
+  })
+
+  test("an SVG's paths and a text's runs draw no layer of their own", async () => {
+    const graph = new SceneGraph()
+    const frame = card(graph, 'Card')
+    const [title] = graph.getChildren(frame.id)
+    graph.updateNode(title.id, {
+      text: 'Pro plan',
+      styleRuns: [{ start: 0, length: 3, style: { fontWeight: 700 } }]
+    })
+    const star = graph.createNode('VECTOR', frame.id, { name: 'Star', width: 24, height: 24 })
+    const vectorElement: VectorElementRenderer = () => ({
+      type: 'element',
+      tagName: 'svg',
+      attrs: { viewBox: '0 0 24 24' },
+      children: [
+        { type: 'element', tagName: 'path', attrs: { d: 'M2 2h20v20H2z' }, children: [] },
+        { type: 'element', tagName: 'path', attrs: { d: 'M12 2v20' }, children: [] }
+      ]
+    })
+
+    for (const styling of ['css', 'tailwind'] as const) {
+      const { html, layerIds } = await layerMarkup(graph, [frame.id], { styling, vectorElement })
+      expect(html).toContain('<path d="M12 2v20"')
+      // A check compares each element with the layer it draws: the run and the paths are not
+      // their layer's box, so they draw none.
+      expect(layerIds).toEqual([frame.id, title.id, null, star.id, null, null])
+    }
   })
 
   test('layers named alike keep their rules apart', async () => {

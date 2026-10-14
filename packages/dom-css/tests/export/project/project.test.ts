@@ -67,6 +67,42 @@ describe('React project export', () => {
     ])
   })
 
+  test('a frame of words that draws nothing itself labels the canvas and is no screen', async () => {
+    const { graph, home } = projectDesign()
+    const page = graph.getPages()[0].id
+    const section = graph.createNode('SECTION', page, {
+      name: 'Chapter',
+      width: 2000,
+      height: 1200
+    })
+    const heading = graph.createNode('FRAME', section.id, {
+      name: 'Heading',
+      width: 720,
+      height: 120,
+      layoutMode: 'VERTICAL'
+    })
+    graph.createNode('TEXT', heading.id, { name: 'Number', text: '01', fontSize: 88 })
+    graph.createNode('TEXT', heading.id, { name: 'Title', text: 'Hello.', fontSize: 48 })
+    const note = graph.createNode('FRAME', page, { name: 'Note', width: 320, height: 40 })
+    graph.createNode('TEXT', note.id, { text: 'Flows start at Home' })
+    // A frame of words with a background, such as a terms page, is a screen.
+    const terms = graph.createNode('FRAME', section.id, {
+      name: 'Terms',
+      width: 390,
+      height: 844,
+      fills: [{ type: 'SOLID', color: { r: 1, g: 1, b: 1, a: 1 }, opacity: 1, visible: true }]
+    })
+    graph.createNode('TEXT', terms.id, { text: 'Terms of service' })
+
+    const { manifest, files } = await exportReactProject(graph)
+
+    expect(manifest.screens.map((screen) => screen.layerId)).toEqual([home.id, terms.id])
+    expect(files.some((file) => file.path.includes('Heading'))).toBe(false)
+    // Asked for by id, a label is exported like any frame.
+    const asked = await exportReactProject(graph, { screenIds: [heading.id] })
+    expect(asked.manifest.screens.map((screen) => screen.layerId)).toEqual([heading.id])
+  })
+
   test('the manifest says how each design mode switches', async () => {
     const { manifest } = await exported
     const theme = manifest.tokens.collections.find((collection) => collection.name === 'Theme')
@@ -100,6 +136,22 @@ describe('React project export', () => {
     expect(home).toContain('strokeWidth="1.5"')
     expect(home).toContain('fillRule="evenodd"')
     expect(home).not.toContain('stroke-width')
+  })
+
+  test("icons show the design's own glyphs, registered before the app draws", async () => {
+    const project = await exported
+    expect(text(project, 'src/screens/Home.tsx')).toContain('icon="lucide:heart"')
+    const icons = text(project, 'src/icons.ts')
+    expect(icons).toContain('import { addCollection } from "@iconify/react"')
+    expect(icons).toContain("prefix: 'lucide'")
+    expect(icons).toMatch(/heart: \{\s+body: '<path d="M0 6L12 6"/)
+    expect(icons).toContain('width: 24')
+    expect(text(project, 'src/main.tsx')).toContain('import "./icons"')
+
+    // Without the engine's SVG there is no glyph, and Iconify fetches the icon by its name.
+    const fetched = await exportReactProject(projectDesign().graph)
+    expect(fetched.files.some((file) => file.path === 'src/icons.ts')).toBe(false)
+    expect(text(fetched, 'src/main.tsx')).not.toContain('./icons')
   })
 
   test('images are files the page serves, not data inlined in components', async () => {

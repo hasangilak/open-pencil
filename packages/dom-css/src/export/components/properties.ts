@@ -1,3 +1,4 @@
+import { drawnLayerPath } from '#dom-css/behaviours/states/layers'
 import { ownerVariants } from '#dom-css/behaviours/states/model'
 import type { StateElement } from '#dom-css/behaviours/states/types'
 import { camelCase } from 'es-toolkit/string'
@@ -61,7 +62,8 @@ function boundLayers(
   const variants = ownerVariants(graph, set)
   const bound = new Map<StateElement, string>()
   for (const element of elements) {
-    const path = element.key.split('\0')[0] ?? ''
+    const path = drawnLayerPath(element)
+    if (path === undefined) continue
     for (const variant of variants) {
       const reference = findLayerByPath(graph, variant.id, path)?.componentPropertyReferences.find(
         (item) => item.field === field
@@ -152,7 +154,8 @@ export function textProps(
   const inputs: StateElement[] = []
   for (const element of elements) {
     // A key ends with the words a layer reads, which a text prop draws in every variant.
-    const path = element.key.split('\0')[0] ?? ''
+    const path = drawnLayerPath(element)
+    if (path === undefined) continue
     for (const variant of variants) {
       const reference = findLayerByPath(graph, variant.id, path)?.componentPropertyReferences.find(
         (item) => item.field === 'TEXT'

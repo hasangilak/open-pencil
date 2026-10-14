@@ -21,6 +21,7 @@ import { sceneNodeToDesignDocument, type VectorElementRenderer } from '../projec
 import { collectGroups } from '../storybook/groups'
 import { claimName, identifierName } from '../storybook/names'
 import { imageAssets, type ImageAssets } from './assets'
+import { ICONS_MODULE, iconsFile } from './icons'
 import { projectDependencies } from './packages'
 import { scaffoldFiles, screenPath } from './scaffold'
 import {
@@ -55,10 +56,28 @@ export interface ReactProject {
   manifest: DesignCodeManifest
 }
 
-const isScreen = (node: SceneNode) => node.type === 'FRAME' && node.visible
+const shows = (paints: readonly { visible: boolean }[]) => paints.some((paint) => paint.visible)
 
-/** Top-level frames on the pages, and the frames of their top-level sections. */
+/**
+ * A frame that draws nothing itself and holds only text, such as a chapter's heading or a note
+ * beside the screens, labels the canvas rather than being a screen of the app: a screen draws
+ * its background, or holds more than words.
+ */
+function isLabel(graph: SceneGraph, frame: SceneNode): boolean {
+  const children = graph.getChildren(frame.id).filter((child) => child.visible)
+  return (
+    children.length > 0 &&
+    children.every((child) => child.type === 'TEXT') &&
+    !shows(frame.fills) &&
+    !shows(frame.strokes) &&
+    !shows(frame.effects)
+  )
+}
+
+/** Top-level frames on the pages, and the frames of their top-level sections, but labels. */
 function screenLayers(graph: SceneGraph, pages: readonly SceneNode[]): SceneNode[] {
+  const isScreen = (node: SceneNode) =>
+    node.type === 'FRAME' && node.visible && !isLabel(graph, node)
   return pages.flatMap((page) =>
     graph.getChildren(page.id).flatMap((child) => {
       if (child.type === 'SECTION' && child.visible)
@@ -162,6 +181,7 @@ function claimEntries(
 interface Generated<T> {
   sources: ProjectFile[]
   entries: T[]
+  models: ComponentModel[]
 }
 
 /** Each component of the library as a file in `src/components/`. */
@@ -170,10 +190,11 @@ async function componentSources(
   library: ReadonlyMap<string, ComponentModel>,
   images: ImageAssets
 ): Promise<Generated<ManifestComponent>> {
-  const generated: Generated<ManifestComponent> = { sources: [], entries: [] }
+  const generated: Generated<ManifestComponent> = { sources: [], entries: [], models: [] }
   for (const entry of entries) {
     const model = library.get(entry.set.id)
     if (!model) continue
+    generated.models.push(model)
     const { files } = await reactComponent(model, { styling: 'tailwind' })
     for (const file of files)
       generated.sources.push({
@@ -202,7 +223,7 @@ async function screenSources(
     vectorElement?: VectorElementRenderer
   }
 ): Promise<Generated<ManifestScreen>> {
-  const generated: Generated<ManifestScreen> = { sources: [], entries: [] }
+  const generated: Generated<ManifestScreen> = { sources: [], entries: [], models: [] }
   for (const { layer, name } of screens) {
     const model = componentModel(graph, layer, {
       name,
@@ -211,6 +232,7 @@ async function screenSources(
     })
     if (!model) continue
     fillViewport(model.styles.root)
+    generated.models.push(model)
     const { files } = await reactComponent(model, { styling: 'tailwind' })
     for (const file of files) {
       const content = context.images.extract(componentImports(file.content, context.components))
@@ -280,7 +302,8 @@ export async function exportReactProject(
     vectorElement: options.vectorElement,
     components: componentNames(components.sources)
   })
-  const sources = [...components.sources, ...screens.sources]
+  const icons = iconsFile(graph, [...components.models, ...screens.models], options.vectorElement)
+  const sources = [...components.sources, ...screens.sources, ...(icons ? [icons] : [])]
   const tokens = await tokenFiles(graph)
   const fonts = await fontFiles(
     graph,
@@ -310,6 +333,7 @@ export async function exportReactProject(
     manifest,
     dependencies,
     webFonts: fonts.webFonts,
+    modules: icons ? [ICONS_MODULE] : [],
     stylesheets: [
       ...(tokens.files.length > 0 ? ['./tokens.css'] : []),
       ...(fonts.files.length > 0 ? ['./fonts.css'] : [])

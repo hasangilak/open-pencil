@@ -12,6 +12,7 @@ function layer(
   return {
     type: 'element',
     key: name,
+    drawsLayer: true,
     kind: undefined,
     name,
     tagName: 'div',

@@ -204,10 +204,11 @@ export function buildTokenStylesheet(
   }
 
   /**
-   * What a mode's scope declares: the collection's values that differ from its default, and every
-   * alias, in any collection, whose chain reaches one of them. Custom properties inherit as
-   * computed values, so `--primary: var(--blue)` resolved at `:root` would keep the old blue
-   * unless it is declared again where `--blue` changes.
+   * What a mode's scope declares: the collection's values that differ from its default, or for
+   * the default mode itself all of them, and every alias, in any collection, whose chain reaches
+   * one of them. Custom properties inherit as computed values, so `--primary: var(--blue)`
+   * resolved at `:root` would keep the old blue unless it is declared again where `--blue`
+   * changes.
    */
   function modeDeclarations(
     collection: VariableCollection,
@@ -224,7 +225,10 @@ export function buildTokenStylesheet(
       const declaration = declare(variable, mode.modeId, valueIn(variable))
       if (!declaration) continue
       inMode.set(variable.id, declaration)
-      if (declaration.value !== defaults.get(variable.id)?.value)
+      if (
+        mode.modeId === collection.defaultModeId ||
+        declaration.value !== defaults.get(variable.id)?.value
+      )
         scoped.set(variable.id, declaration)
     }
     for (let grew = true; grew;) {
@@ -244,32 +248,44 @@ export function buildTokenStylesheet(
     })
   }
 
+  function modeScope(collection: VariableCollection, mode: VariableCollectionMode) {
+    const condition = mode.condition ?? defaultModeCondition(collection, mode)
+    if (!validate.condition(condition)) {
+      issues.push({
+        message: `${collection.name}: ${mode.name} has a condition that is not a selector or a @media, @supports or @container query: ${condition}`,
+        collectionId: collection.id,
+        modeId: mode.modeId
+      })
+      return []
+    }
+    const declarations = modeDeclarations(collection, mode)
+    return declarations.length > 0 ? [{ collection, mode, condition, declarations }] : []
+  }
+
   const scopes: ModeScope[] = []
   for (const collection of collections) {
-    for (const mode of collection.modes) {
-      if (mode.modeId === collection.defaultModeId) continue
-      const condition = mode.condition ?? defaultModeCondition(collection, mode)
-      if (!validate.condition(condition)) {
-        issues.push({
-          message: `${collection.name}: ${mode.name} has a condition that is not a selector or a @media, @supports or @container query: ${condition}`,
-          collectionId: collection.id,
-          modeId: mode.modeId
-        })
-        continue
-      }
-      const declarations = modeDeclarations(collection, mode)
-      if (declarations.length > 0) scopes.push({ collection, mode, condition, declarations })
-    }
+    const isDefault = (mode: VariableCollectionMode) => mode.modeId === collection.defaultModeId
+    const own = collection.modes
+      .filter((mode) => !isDefault(mode))
+      .flatMap((mode) => modeScope(collection, mode))
+    // The default applies everywhere already, and under its attribute too wherever the page
+    // can switch to another mode, so a layer that sets it keeps it there.
+    const fallback = collection.modes.find(isDefault)
+    if (own.length > 0 && fallback && !fallback.condition)
+      scopes.push(...modeScope(collection, fallback))
+    scopes.push(...own)
   }
 
   const sections: string[] = []
   if (theme.length > 0) sections.push(block('@theme', theme))
   if (root.length > 0) sections.push(block(':root', root))
   sections.push(...scopes.map(modeBlock))
-  if (format === 'tailwind' && scopes.length > 0) {
-    const variants = variantNames(scopes)
+  // Utilities need a variant only for a mode other than the default, which they style apart.
+  const switched = scopes.filter(({ collection, mode }) => mode.modeId !== collection.defaultModeId)
+  if (format === 'tailwind' && switched.length > 0) {
+    const variants = variantNames(switched)
     sections.push(
-      scopes
+      switched
         .map((scope, index) =>
           customVariant(variants[index] ?? modeSlug(scope.collection, scope.mode), scope.condition)
         )

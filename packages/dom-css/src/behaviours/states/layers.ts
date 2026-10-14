@@ -24,6 +24,8 @@ import type { StateElement } from './types'
 export interface VariantLayer {
   type: 'element'
   key: string
+  /** Whether a layer draws it, rather than a layer around it as part of its own drawing. */
+  drawsLayer: boolean
   kind: string | undefined
   name: string
   element: DesignElement
@@ -71,6 +73,7 @@ function variantLayer(
   return {
     type: 'element',
     key,
+    drawsLayer: source !== undefined,
     kind,
     name: node.sourceSceneNode?.name ?? node.tagName,
     element: node,
@@ -131,11 +134,21 @@ export function projectVariant(
   return {
     type: 'element',
     key: '',
+    drawsLayer: true,
     kind: undefined,
     name: variant.name,
     element: root,
     children: root.children.map((child, i) => variantLayer(graph, variant, child, '', i))
   }
+}
+
+/**
+ * The path below the variant of the layer an element draws, or undefined for an element a layer
+ * draws as part of itself, such as an SVG's paths or a text's style runs, whose keys extend the
+ * layer's own.
+ */
+export function drawnLayerPath(element: StateElement): string | undefined {
+  return element.drawsLayer ? (element.key.split('\0')[0] ?? '') : undefined
 }
 
 /** Every layer of a projected variant by key. */
@@ -153,6 +166,7 @@ export function stateElement(layer: VariantLayer): StateElement {
   return {
     type: 'element',
     key: layer.key,
+    drawsLayer: layer.drawsLayer,
     kind: layer.kind,
     name: layer.name,
     tagName: layer.element.tagName,

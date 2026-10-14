@@ -1,4 +1,4 @@
-import { layerKind } from '#dom-css/behaviours/states/layers'
+import { drawnLayerPath, layerKind } from '#dom-css/behaviours/states/layers'
 import type { StateElement } from '#dom-css/behaviours/states/types'
 import type { DesignStyleDeclaration } from '#dom-css/types'
 import { isEmptyObject } from 'es-toolkit/predicate'
@@ -161,7 +161,8 @@ function usedLayer(
   element: StateElement,
   references: ComponentReferences
 ): UsedLayer | null {
-  const path = element.key.split('\0')[0] ?? ''
+  const path = drawnLayerPath(element)
+  if (path === undefined) return null
   // The variant's layer at that path drawn as this element is: a frame, or that instance or icon.
   const node = variantIds
     .map((id) => findLayerByPath(graph, id, path))

@@ -1,3 +1,4 @@
+import { drawnLayerPath } from '#dom-css/behaviours/states/layers'
 import type { StateElement } from '#dom-css/behaviours/states/types'
 
 import { es, jsx } from '@open-pencil/emit'
@@ -46,7 +47,8 @@ export function shaderLayers(
 ): Map<StateElement, ShaderPreset> {
   const shaders = new Map<StateElement, ShaderPreset>()
   for (const element of elements) {
-    const layer = findLayerByPath(graph, restId, element.key.split('\0')[0] ?? '')
+    const path = drawnLayerPath(element)
+    const layer = path === undefined ? undefined : findLayerByPath(graph, restId, path)
     if (!layer) continue
     const shader = layer.fills
       .filter((fill) => fill.visible)

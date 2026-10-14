@@ -77,14 +77,30 @@ describe('token references in design-to-code', () => {
     const outer = card(graph, graph.getPages()[0].id, BLUE_300, {
       variableModes: { theme: 'dark' }
     })
-    card(graph, outer.id, BLUE_500, { variableModes: { theme: 'light' } })
     card(graph, outer.id, BLUE_300, { variableModes: { theme: 'contrast' } })
 
     const projected = element(graph, outer.id)
 
     expect(projected.attrs['data-theme']).toBe('dark')
-    expect(child(projected, 0).inlineStyle?.['background-color']).toBe('#3B82F5')
-    expect(child(projected, 1).inlineStyle?.['background-color']).toBe('#94C4FC')
+    expect(child(projected).attrs).not.toHaveProperty('data-theme')
+    expect(child(projected).inlineStyle?.['background-color']).toBe('#94C4FC')
+  })
+
+  test('puts a node that sets the default mode back in it, wherever the page switches to', () => {
+    const graph = designSystem()
+    const page = graph.getPages()[0].id
+    const outer = card(graph, page, BLUE_300, { variableModes: { theme: 'dark' } })
+    card(graph, outer.id, BLUE_500, { variableModes: { theme: 'light' } })
+    const pinned = card(graph, page, BLUE_500, { variableModes: { theme: 'light' } })
+    const unpinned = card(graph, page, BLUE_500)
+
+    const inner = child(element(graph, outer.id))
+
+    expect(inner.attrs['data-theme']).toBe('light')
+    expect(inner.inlineStyle?.['background-color']).toBe('var(--color-primary)')
+    expect(element(graph, pinned.id).attrs['data-theme']).toBe('light')
+    // A layer that sets no mode follows the page's.
+    expect(element(graph, unpinned.id).attrs).not.toHaveProperty('data-theme')
   })
 
   test('starts an exported node in the modes the editor is showing', () => {

@@ -323,6 +323,19 @@ function styleFromSceneNode(
   return style
 }
 
+/**
+ * Auto line height is the font's own, written out so a page's own line height, such as
+ * Tailwind's preflight 1.5, does not take its place. A text that sizes to one line of words is
+ * as tall as the canvas lays that line out, the font's height rounded up, which CSS's `normal`
+ * is not: Chrome rounds the ascent and descent apart, a pixel short for Inter at 17px, and a
+ * column of such lines drifts a pixel each. Lines that wrap are left to the font.
+ */
+function autoLineHeight(node: SceneNode): string {
+  const oneLine =
+    node.textAutoResize === 'WIDTH_AND_HEIGHT' && !node.text.includes('\n') && node.height > 0
+  return oneLine ? px(node.height) : 'normal'
+}
+
 function styleFromTextNode(
   node: SceneNode,
   parent: SceneNode | undefined,
@@ -342,10 +355,8 @@ function styleFromTextNode(
   style['font-size'] = css('fontSize', px(node.fontSize))
   style['font-weight'] = String(node.fontWeight)
   if (node.italic) style['font-style'] = 'italic'
-  // Auto line height is the font's own, which CSS spells `normal`; written out, so a page's
-  // own line height, such as Tailwind's preflight 1.5, does not take its place.
   style['line-height'] =
-    node.lineHeight === null ? 'normal' : css('lineHeight', px(node.lineHeight))
+    node.lineHeight === null ? autoLineHeight(node) : css('lineHeight', px(node.lineHeight))
   if (node.letterSpacing !== 0)
     style['letter-spacing'] = css('letterSpacing', px(node.letterSpacing))
   if (node.textAlignHorizontal !== 'LEFT')

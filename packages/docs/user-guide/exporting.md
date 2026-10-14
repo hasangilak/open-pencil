@@ -30,7 +30,7 @@ The exported file is saved via a native dialog (desktop) or browser download.
 
 ## React App Export
 
-Export a design as a React and Tailwind CSS app, the same project [`openpencil export -f react`](/programmable/cli/exporting#react-project-export) writes. Each top-level frame becomes a screen, each component a React component, and variables become Tailwind theme tokens. The app is saved as a ZIP named after the document; unzip it and run `npm install && npm run dev`.
+Export a design as a React and Tailwind CSS app, the same project [`openpencil export -f react`](/programmable/cli/exporting#react-project-export) writes. Each top-level frame becomes a screen, each component a React component, and variables become Tailwind theme tokens. A frame of text alone with no fill, such as a section's heading, labels the canvas and is left out. The app is saved as a ZIP named after the document; unzip it and run `npm install && npm run dev`.
 
 | What to export | How |
 |----------------|-----|

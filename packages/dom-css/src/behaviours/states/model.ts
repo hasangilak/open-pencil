@@ -7,6 +7,7 @@ import { findLayerByPath, type SceneGraph, type SceneNode } from '@open-pencil/s
 import { variantConditions } from './conditions'
 import {
   allElements,
+  drawnLayerPath,
   layersByKey,
   mergeVariant,
   projectVariant,
@@ -170,5 +171,6 @@ export function restLayerOf(
   styles: StateStyles,
   element: StateElement
 ): string | undefined {
-  return findLayerByPath(graph, styles.restId, element.key.split('\0')[0] ?? '')?.id
+  const path = drawnLayerPath(element)
+  return path === undefined ? undefined : findLayerByPath(graph, styles.restId, path)?.id
 }

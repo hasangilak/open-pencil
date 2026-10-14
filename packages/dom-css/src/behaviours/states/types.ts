@@ -32,6 +32,11 @@ export interface StateElement {
   type: 'element'
   /** The layer path below the variant, with the text when variants label a layer differently. */
   key: string
+  /**
+   * Whether a layer draws the element, rather than a layer around it as part of its own
+   * drawing, such as an SVG's paths or a text's style runs (`drawnLayerPath`).
+   */
+  drawsLayer: boolean
   /** What the layer draws other than its own box, such as an instance or an icon (`layerKind`). */
   kind: string | undefined
   /** The layer's name, for class names. */

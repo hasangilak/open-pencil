@@ -20,6 +20,8 @@ export interface ScaffoldInput {
   webFonts: readonly WebFontFaceRequest[]
   /** Stylesheets `src/index.css` imports after Tailwind, such as the tokens. */
   stylesheets: readonly string[]
+  /** Modules `src/main.tsx` runs before the app draws, such as the icons it registers. */
+  modules: readonly string[]
 }
 
 const VITE_CONFIG = es.parseModule(dedent`
@@ -49,6 +51,8 @@ const OPEN_IN_MODES = es.parseModule(dedent`
     if (value && values.includes(value)) document.documentElement.setAttribute(attribute, value);
   }
 `).body
+
+const IMPORT_MODULE = es.parseModule('import "$path";')
 
 const MAIN_RENDER = es.parseModule(dedent`
   const root = document.getElementById("root");
@@ -101,11 +105,12 @@ export function modeSwitches(manifest: DesignCodeManifest): ModeSwitch[] {
   return [...values].map(([attribute, list]) => ({ attribute, values: uniq(list) }))
 }
 
-function mainModule(manifest: DesignCodeManifest): string {
+function mainModule(manifest: DesignCodeManifest, modules: readonly string[]): string {
   const switches = modeSwitches(manifest)
   const app = jsx.element('StrictMode', [], [jsx.element('App', [], [], 2)], 1)
   const body = [
     ...MAIN_IMPORTS,
+    ...modules.flatMap((path) => es.fill(IMPORT_MODULE, { $path: es.string(path) }).body),
     ...(switches.length > 0
       ? OPEN_IN_MODES.map((node) => es.fill(node, { $modes: es.json(switches) }))
       : []),
@@ -288,7 +293,7 @@ export function scaffoldFiles(input: ScaffoldInput): ProjectFile[] {
     { path: 'tsconfig.json', content: json(tsconfig) },
     { path: 'vite.config.ts', content: `${es.printModule(VITE_CONFIG)}\n` },
     { path: 'index.html', content: indexHTML(manifest.name, input.webFonts) },
-    { path: 'src/main.tsx', content: `${mainModule(manifest)}\n` },
+    { path: 'src/main.tsx', content: `${mainModule(manifest, input.modules)}\n` },
     { path: 'src/App.tsx', content: `${appModule(manifest)}\n` },
     { path: 'src/index.css', content: `${indexCSS.join('\n')}\n` },
     { path: '.gitignore', content: 'node_modules\ndist\n' },
