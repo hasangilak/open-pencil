@@ -11,6 +11,13 @@ import { sceneNodeToKiwi } from '#core/kiwi/fig/node-change/serialize'
 
 const MASK_TYPE_VALUES = ['ALPHA', 'VECTOR', 'LUMINANCE'] as const satisfies readonly MaskType[]
 
+/** The Kiwi schema's `MaskType` names the Plugin API's VECTOR mask OUTLINE. */
+const SCHEMA_MASK_TYPES = {
+  ALPHA: 'ALPHA',
+  VECTOR: 'OUTLINE',
+  LUMINANCE: 'LUMINANCE'
+} as const satisfies Record<MaskType, string>
+
 const MaskOracleEntry = v.object({ isMask: v.boolean(), maskType: v.picklist(MASK_TYPE_VALUES) })
 
 const MaskOracleJSON = v.pipe(
@@ -33,7 +40,11 @@ describe('Figma mask oracle', () => {
 
     for (const mask of oracle.masks) {
       const props = nodeChangeToProps(
-        { type: 'RECTANGLE', mask: mask.isMask, maskType: mask.maskType } as NodeChange,
+        {
+          type: 'RECTANGLE',
+          mask: mask.isMask,
+          maskType: SCHEMA_MASK_TYPES[mask.maskType]
+        } as NodeChange,
         []
       )
 
@@ -62,7 +73,7 @@ describe('Figma mask oracle', () => {
       )
 
       expect(changes[0].mask).toBe(true)
-      expect(changes[0].maskType).toBe(mask.maskType)
+      expect(changes[0].maskType).toBe(SCHEMA_MASK_TYPES[mask.maskType])
     }
   })
 

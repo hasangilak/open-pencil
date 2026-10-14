@@ -13,6 +13,7 @@ import { fillsOwnSizingAxis } from './export/fill-sizing'
 import { EMPTY_EXPORT_RUNTIME, type FigNodeChangeExportRuntime } from './export/runtime'
 import { applyFontFeaturesToKiwi } from './font/features'
 import { weightToFigmaStyle } from './font/style'
+import { toKiwiMaskType } from './mask'
 import { fillToKiwiPaint, safeColor } from './paint'
 import {
   exportedVariableConsumptionEntries,
@@ -370,7 +371,7 @@ function serializeLayoutProps(node: SceneNode, nc: KiwiNodeChange, graph: SceneG
 function serializeGeometry(node: SceneNode, nc: KiwiNodeChange, blobs: Uint8Array[]): void {
   if (node.isMask) {
     nc.mask = true
-    nc.maskType = node.maskType
+    nc.maskType = toKiwiMaskType(node.maskType)
     if (node.maskIsOutline) nc.maskIsOutline = true
   }
 
