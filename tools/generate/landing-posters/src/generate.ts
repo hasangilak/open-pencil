@@ -60,6 +60,9 @@ async function main(): Promise<void> {
   }
 
   if (process.argv.includes('--assemble')) {
+    // Recapturing here would delete the gathered stills and redo every page on one runner.
+    if (process.argv.includes('--force'))
+      throw new Error('--force cannot be combined with --assemble')
     const files = targets.flatMap(posterFiles)
     const missing = (
       await Promise.all(
