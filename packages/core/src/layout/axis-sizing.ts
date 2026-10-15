@@ -2,6 +2,7 @@ import { Align, type Node as YogaNode } from 'yoga-layout'
 
 import {
   layoutSizing,
+  layoutStrokeWeights,
   type LayoutSizing,
   type SceneGraph,
   type SceneNode
@@ -88,6 +89,15 @@ export function fillKeepsSizeInHuggingParent(
     ownAxisSizing(child, axis) === 'FIXED' &&
     !child.source.editedFields.some((field) => SIZING_FIELDS.has(field))
   )
+}
+
+/** The room a frame's padding and the stroke its layout includes take along a screen axis. */
+export function axisInsets(frame: SceneNode, axis: Axis): number {
+  const stroke = layoutStrokeWeights(frame)
+  if (axis === 'width') {
+    return frame.paddingLeft + frame.paddingRight + (stroke ? stroke.left + stroke.right : 0)
+  }
+  return frame.paddingTop + frame.paddingBottom + (stroke ? stroke.top + stroke.bottom : 0)
 }
 
 /** An auto-layout frame's own sizing along a screen axis, before any fill from its parent. */

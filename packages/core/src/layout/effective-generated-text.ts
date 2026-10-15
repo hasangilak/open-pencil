@@ -1,5 +1,6 @@
 import type { SceneGraph, SceneNode, Size } from '@open-pencil/scene-graph'
 
+import { axisInsets } from './axis-sizing'
 import { getTextMeasurer } from './text-measurement'
 
 type LayoutAxis = 'width' | 'height'
@@ -98,23 +99,17 @@ function intrinsicSize(
     node.primaryAxisAlign === 'SPACE_BETWEEN'
       ? 0
       : node.itemSpacing * Math.max(0, children.length - 1)
+  const widthInsets = axisInsets(node, 'width')
+  const heightInsets = axisInsets(node, 'height')
   if (node.layoutMode === 'HORIZONTAL') {
     return {
-      width:
-        node.paddingLeft +
-        node.paddingRight +
-        childSizes.reduce((sum, child) => sum + child.width, gap),
-      height:
-        node.paddingTop + node.paddingBottom + Math.max(...childSizes.map((child) => child.height))
+      width: widthInsets + childSizes.reduce((sum, child) => sum + child.width, gap),
+      height: heightInsets + Math.max(...childSizes.map((child) => child.height))
     }
   }
   return {
-    width:
-      node.paddingLeft + node.paddingRight + Math.max(...childSizes.map((child) => child.width)),
-    height:
-      node.paddingTop +
-      node.paddingBottom +
-      childSizes.reduce((sum, child) => sum + child.height, gap)
+    width: widthInsets + Math.max(...childSizes.map((child) => child.width)),
+    height: heightInsets + childSizes.reduce((sum, child) => sum + child.height, gap)
   }
 }
 
@@ -137,8 +132,7 @@ function intrinsicSizeWithEffectiveStretch(
   return {
     ...intrinsic,
     width:
-      node.paddingLeft +
-      node.paddingRight +
+      axisInsets(node, 'width') +
       Math.max(...widthCandidates.map((child) => (sizes.get(child.id) ?? child).width))
   }
 }
@@ -151,8 +145,9 @@ function stretchChildrenToEffectiveWidth(
   currentSizes: Map<string, Size>,
   affected: Set<string>
 ): void {
-  const oldContentWidth = oldIntrinsicWidth - node.paddingLeft - node.paddingRight
-  const nextContentWidth = nextWidth - node.paddingLeft - node.paddingRight
+  const insets = axisInsets(node, 'width')
+  const oldContentWidth = oldIntrinsicWidth - insets
+  const nextContentWidth = nextWidth - insets
   for (const child of graph.getChildren(node.id)) {
     if (
       !participatesInIntrinsicSize(child) ||

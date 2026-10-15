@@ -7,8 +7,23 @@ const LAYOUT_EDIT_FIELDS: ReadonlySet<string> = new Set([
   'derivedLayout'
 ])
 
+/** Stroke edits that move the content of a frame whose layout includes its stroke. */
+const STROKE_LAYOUT_FIELDS: ReadonlySet<string> = new Set([
+  'strokes',
+  'strokeWeight',
+  'strokeAlign',
+  'independentStrokeWeights',
+  'borderTopWeight',
+  'borderRightWeight',
+  'borderBottomWeight',
+  'borderLeftWeight'
+])
+
 function hasEditedLayout(node: SceneNode): boolean {
-  return node.source.editedFields.some((field) => LAYOUT_EDIT_FIELDS.has(field))
+  const strokeTakesRoom = node.strokesIncludedInLayout && node.layoutMode !== 'NONE'
+  return node.source.editedFields.some(
+    (field) => LAYOUT_EDIT_FIELDS.has(field) || (strokeTakesRoom && STROKE_LAYOUT_FIELDS.has(field))
+  )
 }
 
 /** The layers in each .fig frame's flow when layout first saw them, as its page opened. */

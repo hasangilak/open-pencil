@@ -1,5 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 
+import { expectDefined } from '#fig-tests/helpers/assert'
+import { guid } from '#fig-tests/helpers/guid'
+import { materializeDocument } from '#fig/document/materialize'
 import {
   applyStyleRefsToFields,
   buildStyleOverrideTable,
@@ -14,10 +17,12 @@ import {
   encodeVectorNetworkBlob,
   mapTextDecoration,
   nodeChangeToProps,
+  sceneNodeToKiwi,
   setVariableColorResolver
 } from '#fig/node-change/index'
 
 import type { NodeChange, Paint } from '@open-pencil/kiwi/fig/codec'
+import { SceneGraph } from '@open-pencil/scene-graph'
 
 describe('@open-pencil/fig NodeChange policy', () => {
   test('converts normalized text values', () => {
@@ -290,5 +295,74 @@ describe('one-ended arrow import', () => {
     expect(props.strokeCap).toBe('NONE')
     expect(props.vectorNetwork?.vertices[1].strokeCap).toBe('ARROW_EQUILATERAL')
     expect(props.vectorNetwork?.vertices[0].strokeCap).toBeUndefined()
+  })
+})
+
+/** An inside-stroked auto layout row, as Figma saves one. */
+function strokedRow(fields: NodeChange = {}): NodeChange {
+  return {
+    type: 'FRAME',
+    stackMode: 'HORIZONTAL',
+    strokePaints: [{ type: 'SOLID', color: { r: 0, g: 0, b: 0, a: 1 }, opacity: 1, visible: true }],
+    strokeWeight: 1,
+    strokeAlign: 'INSIDE',
+    ...fields
+  }
+}
+
+// Figma saves the Plugin API's `strokesIncludedInLayout` as the Kiwi field `bordersTakeSpace`.
+describe('strokes included in auto layout', () => {
+  test('a frame includes its stroke in its layout as Figma saved it', () => {
+    const included = (fields: NodeChange) =>
+      nodeChangeToProps(strokedRow(fields), []).strokesIncludedInLayout
+    expect([
+      included({ bordersTakeSpace: true }),
+      included({ bordersTakeSpace: false }),
+      included({})
+    ]).toEqual([true, false, false])
+  })
+
+  test("an instance's layers include their stroke as the component's do", () => {
+    const { graph, sources } = materializeDocument([
+      { guid: guid(1), type: 'DOCUMENT' },
+      { guid: guid(2), type: 'CANVAS', parentIndex: { guid: guid(1), position: 'a' } },
+      {
+        ...strokedRow({ bordersTakeSpace: true }),
+        guid: guid(3),
+        type: 'SYMBOL',
+        parentIndex: { guid: guid(2), position: 'a' }
+      },
+      {
+        ...strokedRow({ bordersTakeSpace: true }),
+        guid: guid(4),
+        parentIndex: { guid: guid(3), position: 'a' }
+      },
+      {
+        guid: guid(5),
+        type: 'INSTANCE',
+        parentIndex: { guid: guid(2), position: 'b' },
+        symbolData: { symbolID: guid(3) }
+      }
+    ])
+    const instance = expectDefined(graph.getNode(expectDefined(sources.get('1:5'))))
+    const layers = [instance, ...graph.getChildren(instance.id)]
+    expect(layers.map((layer) => [layer.type, layer.strokesIncludedInLayout])).toEqual([
+      ['INSTANCE', true],
+      ['FRAME', true]
+    ])
+  })
+
+  test('a frame writes the flag back as Figma saved it, or as edited', () => {
+    const graph = new SceneGraph()
+    const { nodeType: _type, ...props } = nodeChangeToProps(
+      strokedRow({ guid: guid(2), bordersTakeSpace: true }),
+      []
+    )
+    const frame = graph.createNode('FRAME', graph.getPages()[0].id, props)
+    const written = () =>
+      sceneNodeToKiwi(frame, guid(2), 0, { value: 3 }, graph, [])[0].bordersTakeSpace
+    expect(written()).toBe(true)
+    graph.updateNode(frame.id, { strokesIncludedInLayout: false })
+    expect(written()).toBe(false)
   })
 })

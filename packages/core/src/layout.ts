@@ -16,6 +16,7 @@ import { applyYogaLayout } from './layout/apply'
 import {
   asFlatLeaf,
   asLaidOutIn,
+  axisInsets,
   fillKeepsSizeInHuggingParent,
   heldHugAxis,
   ownAxisSizing,
@@ -290,16 +291,13 @@ function sizesFitParent(
   axis: 'width' | 'height'
 ): boolean {
   if (sizes.some((size) => size === undefined)) return false
-  const padding =
-    axis === 'width'
-      ? parent.paddingLeft + parent.paddingRight
-      : parent.paddingTop + parent.paddingBottom
+  const insets = axisInsets(parent, axis)
   const gap =
     parent.primaryAxisAlign === 'SPACE_BETWEEN'
       ? 0
       : parent.itemSpacing * Math.max(0, childCount - 1)
   const available = axis === 'width' ? parent.width : parent.height
-  const total = sizes.reduce<number>((sum, size) => sum + (size ?? 0), padding + gap)
+  const total = sizes.reduce<number>((sum, size) => sum + (size ?? 0), insets + gap)
   return Math.abs(total - available) < 0.001
 }
 
