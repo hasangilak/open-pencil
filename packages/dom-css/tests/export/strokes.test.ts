@@ -157,6 +157,52 @@ describe('strokes in DOM/CSS export', () => {
     expect(placed['box-shadow']).toBe('inset 0 0 0 2px #FF0000')
   })
 
+  it('gives a fractional stroke its room as padding, as a border would draw it in whole pixels', () => {
+    const padded = {
+      layoutMode: 'VERTICAL',
+      strokesIncludedInLayout: true,
+      paddingTop: 12,
+      paddingRight: 16,
+      paddingBottom: 12,
+      paddingLeft: 16
+    } satisfies Partial<SceneNode>
+    const included = styleOf({ strokes: [stroke('INSIDE', 0.5)], ...padded })
+    expect(included).toMatchObject({
+      'box-shadow': 'inset 0 0 0 0.5px #FF0000',
+      'padding-block': '12.5px',
+      'padding-inline': '16.5px',
+      'box-sizing': 'border-box'
+    })
+    expect(roomTaken(included)).toEqual(['box-sizing'])
+
+    const bottom = styleOf({
+      strokes: [stroke('INSIDE')],
+      ...sides(0, 0, 0.5, 0),
+      layoutMode: 'HORIZONTAL',
+      strokesIncludedInLayout: true
+    })
+    expect(bottom).toMatchObject({
+      'box-shadow': 'inset 0 -0.5px 0 0 #FF0000',
+      'padding-bottom': '0.5px'
+    })
+    expect(roomTaken(bottom)).toEqual(['box-sizing'])
+
+    // Dashes are an outline; dashed side weights, which nothing else draws, a border.
+    const dashed = styleOf({ strokes: [stroke('INSIDE', 0.5)], dashPattern: [2, 2], ...padded })
+    expect(dashed).toMatchObject({
+      outline: '0.5px dashed #FF0000',
+      'outline-offset': '-0.5px',
+      'padding-block': '12.5px'
+    })
+    const dashedSides = styleOf({
+      strokes: [stroke('INSIDE')],
+      dashPattern: [2, 2],
+      ...sides(0, 0, 0.5, 0),
+      ...padded
+    })
+    expect(dashedSides).toMatchObject({ 'border-bottom-width': '0.5px', 'padding-block': '12px' })
+  })
+
   it('leaves center and outside strokes out of layout, as Figma does', () => {
     const included = (align: Stroke['align']) =>
       styleOf({ strokes: [stroke(align)], layoutMode: 'VERTICAL', strokesIncludedInLayout: true })
@@ -300,5 +346,28 @@ describe('strokes in DOM/CSS export', () => {
     expect(bound('INSIDE', { dashPattern: [6, 4] })['outline-offset']).toBe(
       'calc(var(--hairline) * -1)'
     )
+
+    graph.addVariable({
+      id: 'thin',
+      name: 'Thin',
+      type: 'FLOAT',
+      collectionId: 'sizes',
+      valuesByMode: { one: 0.5 },
+      scopes: ['STROKE_FLOAT'],
+      codeSyntax: { WEB: 'var(--thin)' },
+      description: '',
+      hiddenFromPublishing: false
+    })
+    const included = bound('INSIDE', {
+      strokeWeight: 0.5,
+      strokes: [stroke('INSIDE', 0.5)],
+      boundVariables: { strokeWeight: 'thin' },
+      layoutMode: 'VERTICAL',
+      strokesIncludedInLayout: true,
+      paddingTop: 8,
+      paddingBottom: 8
+    })
+    expect(included['padding-block']).toBe('calc(8px + var(--thin))')
+    expect(included['padding-inline']).toBe('var(--thin)')
   })
 })

@@ -7,7 +7,7 @@ import { strokeColorToCSS } from './css'
 type FieldCSS = (field: string, literal: string) => string
 
 /** A stroke weight as CSS writes it, and the number it stands for. */
-interface Weight {
+export interface Weight {
   css: string
   value: number
 }
@@ -20,6 +20,11 @@ export interface StrokeCSS {
   style: DesignStyleDeclaration
   /** `box-shadow` layers that draw it otherwise, which the layer's own shadows join. */
   shadows: string[]
+  /**
+   * The room an auto layout frame gives its stroke inside each side, top, right, bottom, left,
+   * which its padding makes where no border does.
+   */
+  room?: Weight[]
 }
 
 const NONE: StrokeCSS = { style: {}, shadows: [] }
@@ -39,6 +44,15 @@ function scale(weight: Weight, factor: number): string {
   if (factor === 1) return weight.css
   if (weight.css === px(weight.value)) return px(weight.value * factor)
   return `calc(${weight.css} * ${factor})`
+}
+
+/** A length plus a weight: lengths add up, a token reference makes a `calc()`. */
+export function addWeight(length: Weight, weight: Weight): string {
+  if (weight.value === 0) return length.css
+  if (length.css === px(0)) return weight.css
+  if (length.css === px(length.value) && weight.css === px(weight.value))
+    return px(length.value + weight.value)
+  return `calc(${length.css} + ${weight.css})`
 }
 
 /** Sides compare by their CSS, so a token and a literal of the same size stay separate. */
@@ -123,14 +137,20 @@ function lineStroke(weight: Weight, color: string, dashed: boolean): StrokeCSS {
   return { style: border({ sides: [weight, none, none, none] }, color, true), shadows: [] }
 }
 
+function sideWeights(weights: StrokeWeights): Weight[] {
+  return 'uniform' in weights ? SIDES.map(() => weights.uniform) : weights.sides
+}
+
 /**
  * A layer's first visible stroke, drawn where the design draws it without taking room the design
  * does not give it: as `box-shadow` spread, which follows the corners, takes no room, and paints
- * beneath the layer's children, as the canvas and Figma draw a frame's stroke. A stroke its auto
- * layout makes room for (`strokeInLayout`) is a border, which insets the children as layout
- * does. A dashed one, or one inside a layer whose own content covers an inset shadow
- * (`coversInset`: an image or a shader), is an outline offset into the layer, which has one
- * weight; with side weights it stays a border.
+ * beneath the layer's children, as the canvas and Figma draw a frame's stroke. A dashed one, or
+ * one inside a layer whose own content covers an inset shadow (`coversInset`: an image or a
+ * shader), is an outline offset into the layer, which has one weight; with side weights it stays
+ * a border. A stroke its auto layout makes room for (`strokeInLayout`) is a border, which insets
+ * the children as layout does, while its weights are whole pixels. Browsers draw a border in
+ * whole device pixels, a 0.5px one as 1px, so a fractional stroke is drawn as one that takes no
+ * room, and the padding makes its room (`room`).
  */
 export function strokeToCSS(node: SceneNode, css: FieldCSS, coversInset: boolean): StrokeCSS {
   const index = node.strokes.findIndex((candidate) => candidate.visible)
@@ -142,13 +162,13 @@ export function strokeToCSS(node: SceneNode, css: FieldCSS, coversInset: boolean
   const dashed = node.dashPattern.length > 0
   if (node.type === 'LINE' && 'uniform' in weights)
     return lineStroke(weights.uniform, color, dashed)
-  if (strokeInLayout(node)) return { style: border(weights, color, dashed), shadows: [] }
+  const room = strokeInLayout(node) ? sideWeights(weights) : undefined
+  if (room?.every((weight) => Number.isInteger(weight.value)))
+    return { style: border(weights, color, dashed), shadows: [] }
   if (dashed || (coversInset && stroke.align !== 'OUTSIDE')) {
-    const style =
-      'uniform' in weights
-        ? outline(weights.uniform, stroke.align, color, dashed)
-        : border(weights, color, dashed)
-    return { style, shadows: [] }
+    // A border takes its room itself.
+    if (!('uniform' in weights)) return { style: border(weights, color, dashed), shadows: [] }
+    return { style: outline(weights.uniform, stroke.align, color, dashed), shadows: [], room }
   }
-  return { style: {}, shadows: shadows(weights, stroke.align, color) }
+  return { style: {}, shadows: shadows(weights, stroke.align, color), room }
 }

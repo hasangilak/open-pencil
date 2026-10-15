@@ -22,7 +22,12 @@ import {
   type ParentFlow
 } from './flow'
 import { applyPositioning } from './insets'
-import { borderStyleFromCSS, strokeFromCSS, type CSSStroke } from './strokes'
+import {
+  borderStyleFromCSS,
+  includeStrokeInPadding,
+  strokeFromCSS,
+  type CSSStroke
+} from './strokes'
 import {
   blockRichText,
   characterStyleFromCSS,
@@ -462,6 +467,7 @@ function createElementNode(
   if (flow) {
     applyContainerLayout(node, element, style, flow)
     if (flow === 'flex') applyFlexGap(node, style)
+    includeStrokeInPadding(node)
   }
   applyFlowSizing(graph, node, style, display, parentFlow)
 

@@ -43,6 +43,10 @@ function strokeOf(node: SceneNode) {
   }
 }
 
+function paddingOf(node: SceneNode): number[] {
+  return [node.paddingTop, node.paddingRight, node.paddingBottom, node.paddingLeft]
+}
+
 describe('strokes in HTML import', () => {
   it('reads a border as an inside stroke that takes room, as CSS gives it', async () => {
     expect(strokeOf(await importBox('display:flex;border:2px solid #f00'))).toEqual({
@@ -105,6 +109,34 @@ describe('strokes in HTML import', () => {
     expect(twoColors.effects).toHaveLength(2)
   })
 
+  it('reads padding that holds a fractional inside stroke as the room the stroke takes', async () => {
+    const ring = await importBox(
+      'display:flex;padding:12.5px 16.5px;box-shadow:inset 0 0 0 0.5px #f00'
+    )
+    expect(strokeOf(ring)).toMatchObject({ align: 'INSIDE', weight: 0.5, takesSpace: true })
+    expect(paddingOf(ring)).toEqual([12, 16, 12, 16])
+
+    const band = await importBox(
+      'display:flex;padding-bottom:0.5px;box-shadow:inset 0 -0.5px 0 0 #f00'
+    )
+    expect(strokeOf(band)).toMatchObject({ sides: [0, 0, 0.5, 0], takesSpace: true })
+    expect(paddingOf(band)).toEqual([0, 0, 0, 0])
+
+    // Whole weights and padding a stroke's weight leaves fractional stay as written.
+    for (const [style, padding] of [
+      ['display:flex;padding:16px;box-shadow:inset 0 0 0 0.5px #f00', 16],
+      ['display:flex;padding:16.5px;box-shadow:inset 0 0 0 1px #f00', 16.5],
+      ['display:flex;padding:16.5px;box-shadow:0 0 0 0.5px #f00', 16.5]
+    ] as const) {
+      const box = await importBox(style)
+      expect({ style, takesSpace: strokeOf(box).takesSpace, padding: box.paddingLeft }).toEqual({
+        style,
+        takesSpace: false,
+        padding
+      })
+    }
+  })
+
   it('reads back every stroke the export writes', async () => {
     const stroke = (align: Stroke['align'], weight = 2): Stroke => ({
       type: 'SOLID',
@@ -121,6 +153,9 @@ describe('strokes in HTML import', () => {
       borderBottomWeight: 3,
       borderLeftWeight: 0
     }
+    const fractionalSides = { ...sides, borderBottomWeight: 0.5 }
+    const included = { layoutMode: 'VERTICAL', strokesIncludedInLayout: true } as const
+    const padded = { paddingTop: 12, paddingRight: 16, paddingBottom: 12, paddingLeft: 16 }
     const cases: Partial<SceneNode>[] = [
       { strokes: [stroke('INSIDE')] },
       { strokes: [stroke('CENTER')] },
@@ -129,7 +164,11 @@ describe('strokes in HTML import', () => {
       { strokes: [stroke('CENTER', 3)], ...sides },
       { strokes: [stroke('OUTSIDE', 3)], ...sides },
       { strokes: [stroke('CENTER')], dashPattern: [6, 4] },
-      { strokes: [stroke('INSIDE')], layoutMode: 'VERTICAL', strokesIncludedInLayout: true }
+      { strokes: [stroke('INSIDE')], layoutMode: 'VERTICAL', strokesIncludedInLayout: true },
+      { strokes: [stroke('INSIDE', 0.5)], ...included, ...padded },
+      { strokes: [stroke('INSIDE', 0.5)], ...included, ...padded, dashPattern: [1, 1] },
+      { strokes: [stroke('INSIDE', 1)], ...included, ...padded, ...fractionalSides },
+      { strokes: [stroke('INSIDE', 0.5)], layoutMode: 'VERTICAL', ...padded }
     ]
     for (const fields of cases) {
       const graph = new SceneGraph()
@@ -145,7 +184,11 @@ describe('strokes in HTML import', () => {
       const imported = await htmlToSceneGraph(html, { runtime: createHeadlessCSSRuntime() })
       const box = [...imported.getAllNodes()].find((node) => node.name === 'box')
       if (!box) throw new Error(`Nothing imported from ${html}`)
-      expect({ html, ...strokeOf(box) }).toEqual({ html, ...strokeOf(design) })
+      expect({ html, ...strokeOf(box), padding: paddingOf(box) }).toEqual({
+        html,
+        ...strokeOf(design),
+        padding: paddingOf(design)
+      })
     }
   })
 })

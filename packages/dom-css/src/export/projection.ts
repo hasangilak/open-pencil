@@ -16,7 +16,7 @@ import type { DesignDocument, DesignElement, DesignNode, DesignStyleDeclaration 
 import { cssColor, dropShadowToCSS, effectsToCSS, fillToCSS } from './css'
 import { addGridContainer, addGridPlacement } from './grid'
 import { addPositioning, placesLayersOutsideLayout } from './placement'
-import { strokeToCSS } from './strokes'
+import { addWeight, strokeToCSS, type Weight } from './strokes'
 import { textCaseToCSS, textElementContent } from './text'
 
 const DOM_CSS_PLUGIN_ID = 'open-pencil-dom-css'
@@ -153,9 +153,21 @@ function addCornerRadii(style: DesignStyleDeclaration, node: SceneNode, css: Fie
 
 const PADDING_FIELDS = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const
 
-/** Sides compare by their CSS, so a token and a literal of the same size stay separate. */
-function addPadding(style: DesignStyleDeclaration, node: SceneNode, css: FieldCSS): void {
-  const [top, right, bottom, left] = PADDING_FIELDS.map((field) => css(field, px(node[field])))
+/**
+ * Sides compare by their CSS, so a token and a literal of the same size stay separate. A stroke's
+ * room (`StrokeCSS.room`) adds to each side.
+ */
+function addPadding(
+  style: DesignStyleDeclaration,
+  node: SceneNode,
+  css: FieldCSS,
+  room: Weight[] | undefined
+): void {
+  const [top, right, bottom, left] = PADDING_FIELDS.map((field, side) => {
+    const padding = { css: css(field, px(node[field])), value: node[field] }
+    const weight = room?.at(side)
+    return weight ? addWeight(padding, weight) : padding.css
+  })
   const zero = px(0)
   if ([top, right, bottom, left].every((value) => value === zero)) return
 
@@ -286,7 +298,7 @@ function styleFromSceneNode(
 
   if (node.layoutMode === 'GRID') {
     addGridContainer(style, node, css)
-    addPadding(style, node, css)
+    addPadding(style, node, css, stroke.room)
   } else if (node.layoutMode !== 'NONE') {
     style.display = 'flex'
     // Row is the flexbox default.
@@ -297,7 +309,7 @@ function styleFromSceneNode(
     if (alignItems) style['align-items'] = alignItems
     if (node.layoutWrap === 'WRAP') style['flex-wrap'] = 'wrap'
     addFlexGap(style, node, css)
-    addPadding(style, node, css)
+    addPadding(style, node, css, stroke.room)
   }
 
   addBoxSizing(style)

@@ -1,4 +1,4 @@
-import type { Color, Effect, Stroke } from '@open-pencil/scene-graph'
+import type { Color, Effect, SceneNode, Stroke } from '@open-pencil/scene-graph'
 import { parseCSSColor, parseCSSNumber, parseCSSShadows } from '@open-pencil/scene-graph/css'
 
 import type { DesignStyleDeclaration } from '../types'
@@ -178,6 +178,45 @@ function shadowStroke(shadows: Effect[]): StrokeAndEffects {
     rings.length > 0 ? ringStroke(rings, first.color) : bandStroke(drawing, first.color)
   if (!stroke) return none
   return { stroke, effects: shadows.filter((shadow) => !drawing.includes(shadow)) }
+}
+
+/** How far a length may be off whole pixels and count as whole: browsers round what they report. */
+const WHOLE_TOLERANCE = 0.01
+
+const nearWhole = (length: number) => Math.abs(length - Math.round(length)) <= WHOLE_TOLERANCE
+
+/** Each side's padding field and stroke weight field. */
+const PADDED_SIDES = [
+  { padding: 'paddingTop', weight: 'borderTopWeight' },
+  { padding: 'paddingRight', weight: 'borderRightWeight' },
+  { padding: 'paddingBottom', weight: 'borderBottomWeight' },
+  { padding: 'paddingLeft', weight: 'borderLeftWeight' }
+] as const
+
+/**
+ * Gives an auto layout frame's inside stroke room again where its padding holds the stroke's
+ * weight, as the export writes an included stroke of fractional weights, which a border would
+ * snap to whole device pixels: whole pixels plus the weight on each stroked side. Either reading
+ * lays the frame out the same, so padding of other sizes stays as it is.
+ */
+export function includeStrokeInPadding(node: SceneNode): void {
+  const stroke = node.strokes.at(0)
+  if (stroke?.align !== 'INSIDE' || node.strokesIncludedInLayout || node.layoutMode === 'NONE')
+    return
+  const sides = PADDED_SIDES.map(({ padding, weight }) => ({
+    field: padding,
+    weight: node[weight],
+    rest: node[padding] - node[weight]
+  }))
+  // The export writes whole weights as a border.
+  if (sides.every(({ weight }) => nearWhole(weight))) return
+  const holdsWeight = ({ weight, rest }: (typeof sides)[number]) =>
+    weight === 0 || (rest > -WHOLE_TOLERANCE && nearWhole(rest))
+  if (!sides.every(holdsWeight)) return
+  for (const { field, weight, rest } of sides) {
+    if (weight !== 0) node[field] = Math.max(0, Math.round(rest))
+  }
+  node.strokesIncludedInLayout = true
 }
 
 /**
