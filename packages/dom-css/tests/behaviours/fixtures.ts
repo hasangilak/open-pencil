@@ -637,8 +637,9 @@ export function textFieldSet() {
 }
 
 /**
- * A sign-up form using the email field twice, with the field's own set in the same document:
- * drawn empty, showing its placeholder, and drawn filled with an address.
+ * A sign-up form using the email field three times, with the field's own set in the same
+ * document: drawn empty, showing its placeholder, drawn empty with other words, and drawn filled
+ * with an address.
  */
 export function signupFormComponent() {
   const { graph, set: email } = textFieldSet()
@@ -654,8 +655,31 @@ export function signupFormComponent() {
     height: 80
   })
   graph.createInstance(variant('No'), form.id, { name: 'Empty' })
-  graph.createInstance(variant('Yes'), form.id, { name: 'Filled', y: 44 })
+  const work = graph.createInstance(variant('No'), form.id, { name: 'Work', y: 44 })
+  if (!work) throw new Error('Expected the work email placed')
+  graph.updateNode(work.id, {
+    componentPropertyAssignments: { ...work.componentPropertyAssignments, email: 'Work email' }
+  })
+  graph.createInstance(variant('Yes'), form.id, { name: 'Filled', y: 88 })
   return { graph, set: graph.getNode(form.id) ?? form }
+}
+
+/** A cart using the quantity field twice: at the field's own value, and drawn holding 5. */
+export function cartComponent() {
+  const { graph, set: quantity } = numberFieldComponent()
+  const cart = graph.createNode('COMPONENT', graph.getPages()[0].id, {
+    name: 'Cart',
+    y: 200,
+    width: 80,
+    height: 56
+  })
+  graph.createInstance(quantity.id, cart.id, { name: 'Usual' })
+  const more = graph.createInstance(quantity.id, cart.id, { name: 'More', y: 32 })
+  if (!more) throw new Error('Expected the second quantity placed')
+  graph.updateNode(more.id, {
+    componentPropertyAssignments: { ...more.componentPropertyAssignments, count: '5' }
+  })
+  return { graph, set: graph.getNode(cart.id) ?? cart }
 }
 
 /** A textarea starting with its words, with nothing drawn empty. */

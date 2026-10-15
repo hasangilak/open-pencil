@@ -131,6 +131,10 @@ function referenceValue(value: string | boolean): es.SyntaxNode | null {
   return jsx.stringValue(value)
 }
 
+/** A field's starting value: its words, or `{5}` for a number field's number. */
+const startValue = (value: string | number) =>
+  typeof value === 'number' ? jsx.container(es.number(value)) : jsx.stringValue(value)
+
 function reference(node: ComponentReference, uses: MarkupUses, depth: number): es.SyntaxNode {
   uses.components.add(node.component)
   return drawing(
@@ -140,10 +144,10 @@ function reference(node: ComponentReference, uses: MarkupUses, depth: number): e
         jsx.attribute('className', classValue(uses.classOf(node.className))),
         ...node.props.map((prop) => jsx.attribute(prop.name, referenceValue(prop.value))),
         ...(node.model ? [jsx.attribute(defaultOf(node.model), null)] : []),
-        // A field's input takes the caller's props, and starts with the words it holds.
-        ...(node.text === undefined
+        // A field starts with the words or number it holds.
+        ...(node.value === undefined
           ? []
-          : [jsx.attribute(defaultOf('value'), jsx.stringValue(node.text))])
+          : [jsx.attribute(defaultOf('value'), startValue(node.value))])
       ],
       [],
       depth

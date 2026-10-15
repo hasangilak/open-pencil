@@ -157,11 +157,10 @@ function inputNode(className: string, uses: TemplateUses): vue.VueElement {
     uses.reka.add('NumberFieldInput')
     return vue.element('NumberFieldInput', [vue.attribute('class', uses.classOf(className))])
   }
-  const placeholder = component.text?.placeholder
   return vue.element(component.kind === 'textarea' ? 'textarea' : 'input', [
     vue.attribute('class', uses.classOf(className)),
     ...(component.model ? [vue.model(identifier(component.model))] : []),
-    ...(placeholder ? [vue.attribute('placeholder', placeholder)] : []),
+    ...(hasPlaceholder(component) ? [vue.bound('placeholder', identifier('placeholder'))] : []),
     ...(component.disabled ? [vue.bound('disabled', identifier('disabled'))] : [])
   ])
 }
@@ -193,12 +192,12 @@ const ICONIFY = 'IconifyIcon'
 
 function reference(node: ComponentReference, uses: TemplateUses): vue.VueElement {
   uses.components.add(node.component)
-  // A boolean drawn on, or the words a field holds, as its `value`.
-  const bound = node.model ?? (node.text === undefined ? null : 'value')
+  // A boolean drawn on, or the words or number a field holds, as its `value`.
+  const bound = node.model ?? (node.value === undefined ? null : 'value')
   const model = bound
     ? claimName(`${camelCase(node.component)}${upperFirst(bound)}`, uses.taken)
     : null
-  if (model) uses.models.push({ name: model, value: es.json(node.text ?? true) })
+  if (model) uses.models.push({ name: model, value: es.json(node.value ?? true) })
   return vue.element(node.component, [
     vue.attribute('class', uses.classOf(node.className)),
     ...node.props.map((prop) =>
@@ -309,15 +308,27 @@ function propsType(component: ComponentModel): es.SyntaxNode {
   if (component.disabled) members.unshift(['disabled', es.parseType('boolean'), true])
   // A group's item always stands for a value, which has no default.
   if (component.valueProp) members.unshift(['value', es.parseType('string'), false])
+  if (hasPlaceholder(component)) members.push(['placeholder', es.parseType('string'), true])
   for (const text of component.texts) members.push([text.name, es.parseType('string'), true])
   for (const prop of component.booleans) members.push([prop.name, es.parseType('boolean'), true])
   return es.objectType(members)
 }
 
+/**
+ * Whether a field shows a placeholder while empty, the design's words by default, which a
+ * caller that draws it empty with other words passes.
+ */
+const hasPlaceholder = (component: ComponentModel) =>
+  typeof component.text?.placeholder === 'string'
+
 /** `defineProps`, with `withDefaults` when any prop has a default to give. */
-/** Whether any prop has a default to give: `disabled`, a variant, a text, or a boolean. */
+/**
+ * Whether any prop has a default to give: `disabled`, a placeholder, a variant, a text, or a
+ * boolean.
+ */
 const hasDefaults = (component: ComponentModel) =>
   component.disabled ||
+  hasPlaceholder(component) ||
   component.props.length > 0 ||
   component.texts.length > 0 ||
   component.booleans.length > 0
@@ -330,8 +341,10 @@ function propsDeclaration(component: ComponentModel): es.SyntaxNode[] {
 }
 
 function propsDefaults(component: ComponentModel): es.SyntaxNode {
+  const placeholder = component.text?.placeholder
   return es.object([
     ...(component.disabled ? [['disabled', es.parseExpression('false')] as const] : []),
+    ...(typeof placeholder === 'string' ? [['placeholder', es.string(placeholder)] as const] : []),
     ...component.props.map((prop) => [prop.name, es.string(prop.default)] as const),
     ...component.texts.map((text) => [text.name, es.string(text.default)] as const),
     ...component.booleans.map(

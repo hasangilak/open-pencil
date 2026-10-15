@@ -137,7 +137,7 @@ export function textProps(
   elements: readonly StateElement[],
   taken: Set<string>,
   /** A field's text property, which its input shows rather than a prop. */
-  input: string | undefined
+  input: string | null
 ): { texts: TextProp[]; bound: Map<StateElement, string>; input: StateElement[] } {
   const definitions = behaviourProperties(graph, set).filter(
     (item) => item.type === 'TEXT' && item.id !== input

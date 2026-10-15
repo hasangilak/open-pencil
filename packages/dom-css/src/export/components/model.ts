@@ -152,8 +152,6 @@ export interface RangeModel {
 export interface TextModel {
   default: string
   placeholder: string | null
-  /** The text property the input shows, which an instance's words are read from. */
-  propertyId: string | null
 }
 
 export type ComponentNode =
@@ -185,6 +183,11 @@ export interface ComponentModel {
   range: RangeModel | null
   /** The text a text field or textarea binds. */
   text: TextModel | null
+  /**
+   * The text property a field's input shows, which an instance's words, or a number field's
+   * number, are read from.
+   */
+  inputProperty: string | null
   /** A group's item takes the `value` it stands for, which the group chooses among. */
   valueProp: boolean
   /** The component of a group's items, generated beside the group's own. */
@@ -454,16 +457,25 @@ function valueModels(
   kind: GeneratedKind,
   behaviour: Behaviour | null,
   args: BehaviourArgs
-): { range: RangeModel | null; text: TextModel | null; inputProperty: string | undefined } {
-  if (!behaviour) return { range: null, text: null, inputProperty: undefined }
+): { range: RangeModel | null; text: TextModel | null; inputProperty: string | null } {
+  if (!behaviour) return { range: null, text: null, inputProperty: null }
   const valueText = inputValue(kind)
-  const inputProperty = valueText && textBinding(behaviour, valueText)
+  const inputProperty = (valueText && textBinding(behaviour, valueText)) || null
   const definition = behaviourProperties(graph, set).find((item) => item.id === inputProperty)
   return {
     range: rangeModel(kind, behaviour),
     text: textModel(kind, definition, args),
     inputProperty
   }
+}
+
+/**
+ * The prop names a component's own bindings take: its model, `disabled`, `value`, and the
+ * `placeholder` a field drawn empty shows.
+ */
+function bindingNames(model: string | null, text: TextModel | null): Set<string> {
+  const placeholder = typeof text?.placeholder === 'string' ? ['placeholder'] : []
+  return new Set([...(model ? [model] : []), 'disabled', 'value', ...placeholder])
 }
 
 export function componentModel(
@@ -503,7 +515,7 @@ export function componentModel(
   const choice = tabs?.choice ?? items?.choice ?? null
   const { range, text, inputProperty } = valueModels(graph, set, kind, behaviour, args)
   const model = modelName(args, !!options.itemOf, !!(choice ?? range ?? text))
-  const taken = new Set([...(model ? [model] : []), 'disabled', 'value'])
+  const taken = bindingNames(model, text)
   const props = variantProps(graph, set, args, taken)
   const disabled = drawsDisabled(args)
   const used = usedLayers(graph, styles.root, variantIds, items?.used, options.references)
@@ -541,6 +553,7 @@ export function componentModel(
     choice,
     range,
     text,
+    inputProperty,
     valueProp: !!options.itemOf,
     item: items?.item ?? null,
     disabled,

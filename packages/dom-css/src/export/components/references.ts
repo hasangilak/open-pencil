@@ -17,7 +17,10 @@ import {
 import { drawsAsMain } from './drawn'
 import type { ComponentModel } from './model'
 
-/** A prop a reference sets on the component it uses: a variant or text value, or `disabled`. */
+/**
+ * A prop a reference sets on the component it uses: a variant or text value, `disabled`, or the
+ * placeholder an empty field shows.
+ */
 export interface ReferenceProp {
   name: string
   value: string | boolean
@@ -38,8 +41,11 @@ export interface ComponentReference {
   props: ReferenceProp[]
   /** The two-way value the instance is drawn with, when it is on. */
   model: string | null
-  /** The words a field's instance is drawn holding, which it starts with, when not its own. */
-  text?: string
+  /**
+   * What a field's instance is drawn holding, which it starts with, when not the field's own:
+   * a text field's words, or a number field's number.
+   */
+  value?: string | number
 }
 
 /** An icon from a set, drawn by the framework's Iconify component. */
@@ -109,33 +115,72 @@ export function shownText(
   return target?.node.text ?? (typeof assigned === 'string' ? assigned : undefined)
 }
 
+/** A number field's number, read from the words it shows, if they are one. */
+function shownNumber(words: string | undefined): number | undefined {
+  const number = words?.trim() ? Number(words) : Number.NaN
+  return Number.isFinite(number) ? number : undefined
+}
+
+/** The words a field's instance shows in its input, if it has one. */
+function inputWords(
+  graph: SceneGraph,
+  instance: SceneNode,
+  component: ComponentModel
+): string | undefined {
+  const property = component.inputProperty
+  return property ? shownText(graph, instance, property) : undefined
+}
+
+/** Whether an instance draws a field empty, where the design draws it empty and filled. */
+function drawnEmpty(component: ComponentModel, values: Record<string, string>): boolean {
+  const { filled } = component.args
+  return filled !== undefined && values[filled.property] !== filled.on
+}
+
 /**
- * The words a field's instance holds that the field does not start with: those it is drawn
- * filled with, where the design draws the field empty and filled, else words other than its own.
+ * What a field's instance is drawn holding that the field does not start with: its words, or a
+ * number field's number.
  */
-function heldText(
+function heldValue(
   graph: SceneGraph,
   instance: SceneNode,
   component: ComponentModel,
   values: Record<string, string>
-): Pick<ComponentReference, 'text'> {
-  const { text, args } = component
-  if (!text?.propertyId) return {}
-  if (args.filled && values[args.filled.property] !== args.filled.on) return {}
-  const shown = shownText(graph, instance, text.propertyId)
-  return shown === undefined || shown === text.default ? {} : { text: shown }
+): Pick<ComponentReference, 'value'> {
+  const { text, range } = component
+  const words = inputWords(graph, instance, component)
+  if (range) {
+    const number = shownNumber(words)
+    return number === undefined || number === range.default ? {} : { value: number }
+  }
+  if (!text || words === undefined || words === text.default || drawnEmpty(component, values))
+    return {}
+  return { value: words }
+}
+
+/** The words a field's instance drawn empty shows as its placeholder, when not the field's own. */
+function placeholderProps(
+  graph: SceneGraph,
+  instance: SceneNode,
+  component: ComponentModel,
+  values: Record<string, string>
+): ReferenceProp[] {
+  const placeholder = component.text?.placeholder
+  if (typeof placeholder !== 'string' || !drawnEmpty(component, values)) return []
+  const words = inputWords(graph, instance, component)
+  return words === undefined || words === placeholder ? [] : [{ name: 'placeholder', value: words }]
 }
 
 /**
  * What `instance` sets on `component`: the values it is drawn with that differ from defaults,
  * whether it is drawn on: its model, or for a group's item the value that marks it chosen, and
- * the words a field holds.
+ * what a field holds or, drawn empty, shows.
  */
 export function referenceValues(
   graph: SceneGraph,
   instance: SceneNode,
   component: ComponentModel
-): Pick<ComponentReference, 'props' | 'model' | 'text'> {
+): Pick<ComponentReference, 'props' | 'model' | 'value'> {
   const values = instanceMainComponent(graph, instance)?.componentPropertyValues ?? {}
   const props: ReferenceProp[] = []
   let model: string | null = null
@@ -164,7 +209,8 @@ export function referenceValues(
       : prop.default
     if (value !== prop.default) props.push({ name: prop.name, value })
   }
-  return { props, model, ...heldText(graph, instance, component, values) }
+  props.push(...placeholderProps(graph, instance, component, values))
+  return { props, model, ...heldValue(graph, instance, component, values) }
 }
 
 /** A used layer, before the parent's class name for it is known. */

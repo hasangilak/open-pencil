@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path'
 
 import {
   accordionComponent,
+  cartComponent,
   buttonSet,
   collapsibleSet,
   labelledButtonSet,
@@ -372,11 +373,21 @@ describe('generated Vue form controls', () => {
   test('a field used drawn filled starts with the words it is drawn with', async () => {
     const { component } = await generate(signupFormComponent())
     const inputs = (await render(component)).match(/<input[^>]*>/g) ?? []
-    expect(inputs).toHaveLength(2)
-    // Drawn empty, it shows its placeholder.
+    expect(inputs).toHaveLength(3)
+    // Drawn empty, it shows its placeholder: the field's own, or the words it is drawn with.
     expect(inputs[0]).toContain('placeholder="Email"')
     expect(inputs[0]).not.toContain('value="')
-    expect(inputs[1]).toContain('value="ada@example.com"')
+    expect(inputs[1]).toContain('placeholder="Work email"')
+    expect(inputs[1]).not.toContain('value="')
+    expect(inputs[2]).toContain('value="ada@example.com"')
+  })
+
+  test('a number field used drawn holding another number starts with it', async () => {
+    const { component } = await generate(cartComponent())
+    const values = [...(await render(component)).matchAll(/<input[^>]*value="([^"]*)"/g)].map(
+      (match) => match[1]
+    )
+    expect(values).toEqual(['2', '5'])
   })
 })
 

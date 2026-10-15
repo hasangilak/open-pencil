@@ -46,10 +46,7 @@ export function textModel(
 ): TextModel | null {
   if (kind !== 'textField' && kind !== 'textarea') return null
   const words = typeof definition?.defaultValue === 'string' ? definition.defaultValue : ''
-  const propertyId = definition?.id ?? null
-  return args.filled
-    ? { default: '', placeholder: words, propertyId }
-    : { default: words, placeholder: null, propertyId }
+  return args.filled ? { default: '', placeholder: words } : { default: words, placeholder: null }
 }
 
 /** A field's text layer drawn as its input, and the same layer in other words, which it replaces. */
