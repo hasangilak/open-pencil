@@ -38,7 +38,7 @@ Export a design as a React and Tailwind CSS app, the same project [`openpencil e
 | Any page | Right-click it in the Pages panel <kbd>→</kbd> Export as React app |
 | Every page | File <kbd>→</kbd> Export as React App… |
 
-**Check screens**, below that button, lays out each screen of the page in the browser and compares it with its frame: positions, sizes, colors, and type, and the colors again in each variable mode. It lists each screen as matching the design or with its number of differences.
+**Check screens**, below that button, runs each screen's code as the app ships it, with its components and icons, lays it out in the browser, and compares it with its frame: positions, sizes, colors, and type, layers the code does not draw, and the colors again in each variable mode. It lists each screen as matching the design or with its number of differences.
 
 ## Copy/Paste as
 

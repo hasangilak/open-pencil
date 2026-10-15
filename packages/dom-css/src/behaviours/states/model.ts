@@ -174,3 +174,20 @@ export function restLayerOf(
   const path = drawnLayerPath(element)
   return path === undefined ? undefined : findLayerByPath(graph, styles.restId, path)?.id
 }
+
+/**
+ * The layer an element of the merged markup draws: the rest variant's, or for a layer only
+ * other variants draw, such as an open state's content, the first of them that draws it.
+ */
+export function drawnLayerOf(
+  graph: SceneGraph,
+  styles: StateStyles,
+  variantIds: readonly string[],
+  element: StateElement
+): string | undefined {
+  const path = drawnLayerPath(element)
+  if (path === undefined) return undefined
+  return [styles.restId, ...variantIds]
+    .map((id) => findLayerByPath(graph, id, path))
+    .find((layer) => layer !== undefined)?.id
+}

@@ -199,7 +199,8 @@ async function componentSources(
     for (const file of files)
       generated.sources.push({
         path: `src/components/${file.path}`,
-        content: images.extract(file.content)
+        content: images.extract(file.content),
+        ...(file.layerIds ? { layerIds: file.layerIds } : {})
       })
     generated.entries.push({
       name: model.name,
@@ -236,7 +237,11 @@ async function screenSources(
     const { files } = await reactComponent(model, { styling: 'tailwind' })
     for (const file of files) {
       const content = context.images.extract(componentImports(file.content, context.components))
-      generated.sources.push({ path: `src/screens/${file.path}`, content })
+      generated.sources.push({
+        path: `src/screens/${file.path}`,
+        content,
+        ...(file.layerIds ? { layerIds: file.layerIds } : {})
+      })
     }
     generated.entries.push({
       name: model.name,

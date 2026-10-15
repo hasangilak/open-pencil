@@ -3,6 +3,9 @@ export { designToTokens, importDesignTokens } from './codegen/tokens'
 export {
   checkCode,
   checkScreenCode,
+  LAYER_ATTRIBUTE,
+  type AppModules,
+  type CodeCheckHost,
   type CodeCheckOptions,
   type CodeCheckReport
 } from './codegen/check'

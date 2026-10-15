@@ -3,6 +3,7 @@ import type { SceneGraph } from '@open-pencil/scene-graph'
 
 import { iconify, type IconProvider } from '#core/icons'
 import type { RasterCodec } from '#core/io/formats/raster'
+import type { AppModules } from '#core/tools/codegen/check/render'
 
 import type { ExportImageOptions } from './types'
 
@@ -23,4 +24,9 @@ export class FigmaHostServices {
    * which checking code against its design needs; hosts with a DOM provide it.
    */
   measureMarkup?: MarkupMeasurer
+  /**
+   * Loads the packages exported React code imports, which a check of code against its design
+   * runs it with; hosts that bundle them provide it.
+   */
+  loadAppModules?: () => Promise<AppModules>
 }

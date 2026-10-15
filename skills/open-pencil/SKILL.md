@@ -320,7 +320,7 @@ Discover available tools and their arguments from the connected server or browse
 - **`viewport_zoom_to_fit` / `viewport_set` / `viewport_get`** — move the user's view only when they ask to be shown something.
 - **`get_codegen_prompt`** — retrieve OpenPencil's current JSX/codegen guidance.
 - **`export_react_project`** — the design as a React and Tailwind app: components with their properties as props, screens, tokens with their modes, and `openpencil.json`, which maps each file to the layer it draws.
-- **`check_code`** — lay a screen's exported code out in a browser and compare every layer with the design, in each mode and at the widths given; fix what it reports and check again until it passes. Needs the running app.
+- **`check_code`** — run a screen's exported code, with the components and icons it uses, lay it out in a browser, and compare every layer with the design, in each mode and at the widths given; fix what it reports and check again until it passes. Needs the running app.
 - **`undo` / `redo`** — revert or reapply your newest change; they refuse to touch the user's edits.
 - **`list_documents` / `activate_document`** — discover open tabs and show the one you worked on.
 

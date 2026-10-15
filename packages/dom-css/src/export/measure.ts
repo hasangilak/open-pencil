@@ -17,6 +17,13 @@ export interface MarkupMeasureRequest {
   rootAttributes?: Record<string, string>
   /** Stylesheets that load the fonts the markup's text uses, such as Google Fonts'. */
   fontStylesheets?: readonly string[]
+  /** The attribute naming the layer an element draws, which each element reports as `layer`. */
+  layerAttribute?: string
+  /**
+   * Renders the page's app into its root in place of `html`, as an app that draws itself once
+   * mounted does; `html` still names the classes Tailwind builds. Resolves to what unmounts it.
+   */
+  mount?: (root: HTMLElement) => Promise<() => void>
 }
 
 /** The computed styles a check compares, as the browser reports them. */
@@ -39,6 +46,8 @@ export interface MeasuredElement {
   styles: MeasuredStyles
   /** Its content is wider than its box, as overflowing or clipped text is. */
   overflows: boolean
+  /** The value of the request's `layerAttribute` on it, null without one. */
+  layer?: string | null
 }
 
 export interface MarkupMeasurement {

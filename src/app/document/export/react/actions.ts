@@ -8,6 +8,7 @@ import {
 } from '@open-pencil/core/tools'
 
 import { measureMarkup } from '@/app/code/measure'
+import { loadAppModules } from '@/app/code/modules'
 import { getExportBytes, saveExportedFile } from '@/app/document/export/files'
 
 type DownloadBlob = (data: Uint8Array, filename: string, mime: string) => void
@@ -80,15 +81,19 @@ export function createReactAppExportActions(
       : { status: 'cancelled' }
   }
 
-  /** Lays each screen the export writes out in the browser and compares it with its frame. */
+  /**
+   * Runs each screen the export writes, lays it out in the browser, and compares it with its
+   * frame.
+   */
   async function checkReactAppScreens(scope: ReactAppScope): Promise<ReactScreenCheckOutcome> {
     const pageIds = await preparePages(scope)
     if (!pageIds) return { status: 'cancelled' }
-    const { manifest } = await exportReactProjectFiles(editor.graph, { pageIds })
+    const project = await exportReactProjectFiles(editor.graph, { pageIds })
+    const host = { measure: measureMarkup, modules: await loadAppModules() }
     const reports: CodeCheckReport[] = []
-    for (const screen of manifest.screens) {
+    for (const screen of project.manifest.screens) {
       const node = editor.graph.getNode(screen.layerId)
-      if (node) reports.push(await checkScreenCode(editor.graph, node, measureMarkup))
+      if (node) reports.push(await checkScreenCode(editor.graph, node, host, { project }))
     }
     return reports.length > 0 ? { status: 'checked', reports } : { status: 'empty' }
   }

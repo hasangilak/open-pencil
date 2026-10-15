@@ -2,6 +2,7 @@ import { FigmaAPI } from '@open-pencil/core/figma-api'
 import { createCanvasKitRasterCodec } from '@open-pencil/core/io/formats/raster'
 
 import { measureMarkup } from '@/app/code/measure'
+import { loadAppModules } from '@/app/code/modules'
 import type { EditorStore } from '@/app/editor/active-store'
 import { listFamilies, listFonts, loadFont } from '@/app/editor/fonts'
 
@@ -32,6 +33,7 @@ export function makeFigmaFromStore(
     store.renderExportImage(nodeIds, opts.scale ?? 1, opts.format ?? 'PNG', opts.pageId ?? pageId)
   if (store.renderer) api.rasterCodec = createCanvasKitRasterCodec(store.renderer.ck)
   api.measureMarkup = measureMarkup
+  api.loadAppModules = loadAppModules
   api.loadFontAsync = async ({ family, style }) => {
     await loadFont(family, style).catch(() => null)
   }

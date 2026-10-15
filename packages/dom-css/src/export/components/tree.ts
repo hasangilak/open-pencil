@@ -26,7 +26,7 @@ export interface TreeLabels {
   slotOf: Map<StateElement, string>
   /** The shader each layer fills with. */
   shaders: Map<StateElement, ShaderPreset>
-  /** The layer of the rest variant each element draws. */
+  /** The layer each element draws, the rest variant's where it draws one. */
   layerOf: (element: StateElement) => string | undefined
 }
 

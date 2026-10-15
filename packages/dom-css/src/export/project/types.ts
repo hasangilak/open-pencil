@@ -2,6 +2,12 @@
 export interface ProjectFile {
   path: string
   content: string | Uint8Array
+  /**
+   * For a screen's or component's file, the layer each of its JSX elements draws, in the order
+   * they open, `null` for an element no layer drew; a check that runs the code links its
+   * elements back to the design by it. Not written to disk.
+   */
+  layerIds?: (string | null)[]
 }
 
 /** The manifest format: what `openpencil.json` holds, versioned for the agents that read it. */

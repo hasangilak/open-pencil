@@ -5,6 +5,7 @@ import { colorToCSS, tryParseColor } from '@open-pencil/scene-graph/color'
 import type { DesignLayer } from './design'
 
 export type DifferenceKind =
+  | 'missing'
   | 'position'
   | 'size'
   | 'fill'
@@ -141,6 +142,18 @@ export function compareLayer(
     ...difference,
     ...(mode ? { mode } : {})
   }))
+}
+
+/** A layer the design draws that no element of the code draws, the largest listed first. */
+export function missingLayer(layer: DesignLayer): CodeDifference {
+  return {
+    layerId: layer.id,
+    name: layer.name,
+    kind: 'missing',
+    design: `${px(layer.width)} × ${px(layer.height)} at ${px(layer.x)}, ${px(layer.y)}`,
+    code: 'not drawn',
+    delta: Math.max(layer.width, layer.height)
+  }
 }
 
 /** A viewport the page scrolls sideways in, and the layers reaching furthest past it. */

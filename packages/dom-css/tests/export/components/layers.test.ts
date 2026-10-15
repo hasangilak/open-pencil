@@ -75,6 +75,43 @@ describe('layers as components', () => {
     }
   })
 
+  test('an element only another variant draws lists the layer that variant draws it with', async () => {
+    const graph = new SceneGraph()
+    const set = graph.createNode('COMPONENT_SET', graph.getPages()[0].id, {
+      name: 'Disclosure',
+      componentPropertyDefinitions: [
+        {
+          id: 'state',
+          name: 'State',
+          type: 'VARIANT',
+          defaultValue: 'Closed',
+          variantOptions: ['Closed', 'Open']
+        }
+      ]
+    })
+    const variant = (state: string) =>
+      graph.createNode('COMPONENT', set.id, {
+        name: `State=${state}`,
+        componentPropertyValues: { State: state },
+        width: 240,
+        height: 80,
+        layoutMode: 'VERTICAL'
+      })
+    const closed = variant('Closed')
+    const open = variant('Open')
+    const summary = graph.createNode('TEXT', closed.id, { name: 'Summary', text: 'Shipping' })
+    graph.createNode('TEXT', open.id, { name: 'Summary', text: 'Shipping' })
+    const details = graph.createNode('TEXT', open.id, { name: 'Details', text: 'Free over $50' })
+
+    const [react] = await layerComponents(graph, [set.id], 'react', { styling: 'tailwind' })
+
+    expect(react?.files.find((file) => file.path.endsWith('.tsx'))?.layerIds).toEqual([
+      closed.id,
+      summary.id,
+      details.id
+    ])
+  })
+
   test('styled with Tailwind, a component has no stylesheet', async () => {
     const graph = new SceneGraph()
     const frame = card(graph, 'Pricing card')

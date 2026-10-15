@@ -152,8 +152,9 @@ After generating code, verify against the design:
 describe id=<root>     → re-check structure matches
 get_jsx  id=<root>     → compare JSX structure with generated component tree
 check_code id=<screen> widths=[390, 768, 1280]
-                       → OpenPencil's own React + Tailwind export of the screen, laid out in
-                         a browser and compared layer by layer with the design, in every mode
+                       → OpenPencil's own React + Tailwind export of the screen, run with its
+                         components and icons, laid out in a browser, and compared layer by
+                         layer with the design, in every mode
 ```
 
 When the project is React and Tailwind, `export_react_project` writes the whole app — components with their variants as props, screens, tokens with their modes, and the `openpencil.json` manifest mapping files to layers — so start from it rather than writing every file by hand. `check_code` reports what its code draws differently from the design: fix the design where the design is wrong, such as a fixed width that should fill, and check again until it passes.

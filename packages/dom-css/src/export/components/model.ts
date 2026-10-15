@@ -1,7 +1,7 @@
 import { behaviourArgs, type BehaviourArgs } from '#dom-css/behaviours/args'
 import { BUTTON_RESET } from '#dom-css/behaviours/reset'
 import { allElements } from '#dom-css/behaviours/states/layers'
-import { ownerVariants, restLayerOf, stateStyles } from '#dom-css/behaviours/states/model'
+import { drawnLayerOf, ownerVariants, stateStyles } from '#dom-css/behaviours/states/model'
 import { layerClassNames, propAttribute } from '#dom-css/behaviours/states/names'
 import type { StateElement, StateStyles } from '#dom-css/behaviours/states/types'
 import { uniq } from 'es-toolkit/array'
@@ -124,7 +124,10 @@ export interface ComponentElement {
   shownBy?: string
   /** The slot prop whose content the layer shows in place of its own. */
   slot?: string
-  /** The layer of the rest variant it draws, which code links back to. */
+  /**
+   * The layer it draws, which code links back to: the rest variant's, or the first other
+   * variant's for a layer the rest variant does not draw.
+   */
   layerId?: string
   /** The value a repeated part stands for, such as a tab trigger's tab. */
   value?: string
@@ -525,7 +528,7 @@ export function componentModel(
         shownBy,
         slotOf,
         shaders: shaderLayers(graph, styles.restId, allElements(styles.root)),
-        layerOf: (element) => restLayerOf(graph, styles, element)
+        layerOf: (element) => drawnLayerOf(graph, styles, variantIds, element)
       },
       rootBindings(model, !!options.itemOf, disabled, props)
     ),

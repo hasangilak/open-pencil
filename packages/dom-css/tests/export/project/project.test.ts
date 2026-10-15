@@ -131,6 +131,35 @@ describe('React project export', () => {
     expect(home).toMatch(/\bright-10\b/)
   })
 
+  test("screens' and components' files list the layer each of their elements draws", async () => {
+    const { graph, button, home } = projectDesign()
+    const { files } = await exportReactProject(graph, { vectorElement })
+    const rest = graph.getChildren(button.id)[0]
+    const elements = (path: string) => {
+      const file = files.find((candidate) => candidate.path === path)
+      if (typeof file?.content !== 'string') throw new Error(`Expected ${path} in the project`)
+      const source = ts.createSourceFile(path, file.content, ts.ScriptTarget.Latest, true)
+      let count = 0
+      const visit = (node: ts.Node) => {
+        if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) count++
+        ts.forEachChild(node, visit)
+      }
+      visit(source)
+      return { count, layerIds: file.layerIds ?? [] }
+    }
+
+    const screen = elements('src/screens/Home.tsx')
+    const component = elements('src/components/Button.tsx')
+
+    expect(screen.layerIds).toHaveLength(screen.count)
+    expect(screen.layerIds[0]).toBe(home.id)
+    expect(screen.layerIds).toContain(graph.getChildren(home.id)[2]?.id ?? '')
+    expect(component.layerIds).toEqual([rest?.id, rest?.childIds[0]])
+    expect(component.layerIds).toHaveLength(component.count)
+    // What the files hold on disk is their code alone.
+    expect(files.find((file) => file.path === 'openpencil.json')?.content).not.toContain('layerIds')
+  })
+
   test('vector layers are inline SVG with the attribute names React takes', async () => {
     const home = text(await exported, 'src/screens/Home.tsx')
     expect(home).toContain('strokeWidth="1.5"')

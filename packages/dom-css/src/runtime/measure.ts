@@ -53,7 +53,8 @@ async function fontsReady(document: Document, timeoutMs: number): Promise<boolea
 function measured(
   element: Element,
   origin: Pick<DOMRect, 'left' | 'top'>,
-  view: Window
+  view: Window,
+  layerAttribute: string | undefined
 ): MeasuredElement {
   const box = element.getBoundingClientRect()
   const style = view.getComputedStyle(element)
@@ -74,7 +75,8 @@ function measured(
       lineHeight: style.lineHeight,
       opacity: style.opacity
     },
-    overflows: holdsText && element.scrollWidth > element.clientWidth + 1
+    overflows: holdsText && element.scrollWidth > element.clientWidth + 1,
+    ...(layerAttribute ? { layer: element.getAttribute(layerAttribute) } : {})
   }
 }
 
@@ -104,6 +106,7 @@ export async function measureMarkupInBrowser(
     'pointer-events: none'
   ].join(';')
   host.body.append(iframe)
+  let unmount: (() => void) | undefined
   try {
     const page = iframe.contentDocument
     const pageView = iframe.contentWindow
@@ -122,7 +125,15 @@ export async function measureMarkupInBrowser(
     const style = page.createElement('style')
     style.textContent = css
     page.head.append(style)
-    page.body.innerHTML = request.html
+    if (request.mount) {
+      // An app draws into its root, as `index.html` holds it.
+      const root = page.createElement('div')
+      root.id = 'root'
+      page.body.append(root)
+      unmount = await request.mount(root)
+    } else {
+      page.body.innerHTML = request.html
+    }
 
     // A font stylesheet must load before the faces it declares start to.
     await Promise.all(
@@ -142,7 +153,7 @@ export async function measureMarkupInBrowser(
     const origin = first?.getBoundingClientRect() ?? { left: 0, top: 0 }
     const elements = first
       ? [first, ...first.querySelectorAll('*')].map((element) =>
-          measured(element, origin, pageView)
+          measured(element, origin, pageView, request.layerAttribute)
         )
       : []
     return {
@@ -153,6 +164,7 @@ export async function measureMarkupInBrowser(
       fontsLoaded
     }
   } finally {
+    unmount?.()
     iframe.remove()
   }
 }

@@ -44,6 +44,12 @@ export {
   parseOverlapSeverity
 } from './analyze/overlaps/params'
 export { setPexelsAPIKey, setUnsplashAccessKey } from './stock-photo'
-export { checkScreenCode, exportReactProjectFiles } from './codegen'
-export type { CodeCheckOptions, CodeCheckReport, ReactProjectExportOptions } from './codegen'
+export { checkScreenCode, exportReactProjectFiles, LAYER_ATTRIBUTE } from './codegen'
+export type {
+  AppModules,
+  CodeCheckHost,
+  CodeCheckOptions,
+  CodeCheckReport,
+  ReactProjectExportOptions
+} from './codegen'
 export { importSVG } from './create'
