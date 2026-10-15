@@ -129,6 +129,47 @@ export function blockRoot(kind: GeneratedKind, root: StateElement): void {
     root.base = { ...root.base, display: 'block' }
 }
 
+/** What places a layer, which a slider's thumb anchor takes over from the thumb it draws. */
+const THUMB_PLACEMENT = ['position', 'top', 'left', 'right', 'bottom', 'transform', 'margin']
+
+/** Half a length, negated: `-8px` for `16px`. */
+function halfBack(length: string | undefined): string | null {
+  const match = /^(\d+(?:\.\d+)?)px$/.exec(length ?? '')
+  return match ? `${-Number(match[1]) / 2}px` : null
+}
+
+/**
+ * Radix and Reka place a slider's thumb at its value, but keep a thumb with a width inside the
+ * track, off the value by up to half its width, where the design draws it centred on the value.
+ * The thumb they place becomes a zero-wide anchor at the value, which they keep nothing inside,
+ * and an element inside it, centred on it, draws the thumb's layer.
+ */
+export function anchorThumb(kind: GeneratedKind, parts: ReadonlyMap<StateElement, string>): void {
+  if (kind !== 'slider') return
+  const thumb = [...parts].find(([, part]) => part === 'thumb')?.[0]
+  const back = halfBack(thumb?.base.width)
+  if (!thumb || back === null) return
+  const drawn: StateElement = {
+    ...thumb,
+    tagName: 'span',
+    base: { ...omit(thumb.base, THUMB_PLACEMENT), position: 'absolute', top: '0', left: back },
+    children: thumb.children
+  }
+  const anchor = {
+    display: 'block',
+    position: 'relative',
+    ...pick(thumb.base, ['top']),
+    width: '0'
+  }
+  thumb.name = `${thumb.name} anchor`
+  thumb.drawsLayer = false
+  thumb.attrs = {}
+  thumb.shader = undefined
+  thumb.rules = []
+  thumb.base = { ...anchor, ...pick(thumb.base, ['height']) }
+  thumb.children = [drawn]
+}
+
 /** Drops the place a slider or progress bar draws its moving parts at, which the value sets. */
 export function freePlacedParts(
   kind: GeneratedKind,

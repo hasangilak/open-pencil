@@ -313,8 +313,17 @@ describe('generated Vue form controls', () => {
     expect(await render(component)).toContain('aria-valuemax="100"')
     const css = styleOf(files, 'Volume.vue')
     // Reka sets where they are from the value, so the place the design draws them at goes.
-    expect(css.get('.volume .volume__thumb')?.left).toBeUndefined()
     expect(css.get('.volume .volume__range')?.width).toBeUndefined()
+    // Reka places a zero-wide anchor at the value, which it keeps nothing inside, and the thumb
+    // centres on it, as the design draws it centred on the value.
+    expect(css.get('.volume .volume__thumb-anchor')).toMatchObject({
+      position: 'relative',
+      width: '0'
+    })
+    expect(css.get('.volume .volume__thumb')).toMatchObject({ position: 'absolute', left: '-10px' })
+    expect(await render(component)).toMatch(
+      /class="volume__thumb-anchor" role="slider"[^>]*>(<!--[[\]]-->)*<span class="volume__thumb">/
+    )
     // Its root is a span, which lays out as the block the design draws.
     expect(css.get('.volume')?.display).toBe('block')
     expect(css.get('.volume .volume__thumb')?.['box-sizing']).toBe('border-box')

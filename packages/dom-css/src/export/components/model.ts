@@ -23,6 +23,7 @@ import {
 import type { SceneGraphToDesignOptions } from '../projection'
 import { claimName, identifierName } from '../storybook/names'
 import {
+  anchorThumb,
   blockRoot,
   freePlacedParts,
   inputLayers,
@@ -506,6 +507,8 @@ export function componentModel(
   numberInput(input, range)
   const { booleans, shownBy } = booleanProps(graph, set, elements, taken)
   const { slots, slotOf } = slotProps(graph, set, elements, taken, parts)
+  // Once its props are bound, so the element that draws the thumb is no slot of its own.
+  anchorThumb(kind, parts)
   return {
     name,
     kind,
@@ -521,7 +524,7 @@ export function componentModel(
         input,
         shownBy,
         slotOf,
-        shaders: shaderLayers(graph, styles.restId, elements),
+        shaders: shaderLayers(graph, styles.restId, allElements(styles.root)),
         layerOf: (element) => restLayerOf(graph, styles, element)
       },
       rootBindings(model, !!options.itemOf, disabled, props)

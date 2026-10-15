@@ -225,6 +225,17 @@ describe('generated React form controls', () => {
     expect(render(component, { defaultValue: [25] })).toContain('right:75%')
   })
 
+  test('a slider centres its thumb on the value, as the design draws it', async () => {
+    const { files } = await generate(sliderComponent(), 'tailwind')
+    const source = fileText(files, 'Volume.tsx')
+    // Radix keeps a thumb with a width inside the track, off the value, and centres it by the
+    // thumb's own width, so the thumb it places is a zero-wide anchor at the value, and the
+    // layer is drawn inside it, centred on it.
+    expect(source).toMatch(
+      /<SliderPrimitive\.Thumb className="block relative top-0 w-0 h-5">\s*<span className="absolute top-0 left-\[-10px\] w-5 h-5 /
+    )
+  })
+
   test("a progress bar's indicator reaches the value's share of its range", async () => {
     const { component } = await generate(progressComponent())
     expect(render(component)).toContain('width:25%')
