@@ -58,6 +58,10 @@ function measured(
 ): MeasuredElement {
   const box = element.getBoundingClientRect()
   const style = view.getComputedStyle(element)
+  // An empty input or textarea draws its placeholder, in the placeholder's own styles.
+  const text = element.matches(':placeholder-shown')
+    ? view.getComputedStyle(element, '::placeholder')
+    : style
   const holdsText = [...element.childNodes].some(
     (child) => child.nodeType === 3 && (child.textContent ?? '').trim().length > 0
   )
@@ -67,12 +71,14 @@ function measured(
     y: box.top - origin.top,
     width: box.width,
     height: box.height,
+    // `display: none` on it or around it leaves it no box at all.
+    displayed: element.getClientRects().length > 0,
     styles: {
-      color: style.color,
+      color: text.color,
       backgroundColor: style.backgroundColor,
-      fontSize: style.fontSize,
-      fontWeight: style.fontWeight,
-      lineHeight: style.lineHeight,
+      fontSize: text.fontSize,
+      fontWeight: text.fontWeight,
+      lineHeight: text.lineHeight,
       opacity: style.opacity
     },
     overflows: holdsText && element.scrollWidth > element.clientWidth + 1,

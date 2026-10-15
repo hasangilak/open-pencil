@@ -143,6 +143,16 @@ function fontStylesheets(graph: SceneGraph, screen: SceneNode, dom: typeof DOMEx
   return [...families].map(([family, requests]) => dom.googleFontsURL(family, requests))
 }
 
+/**
+ * What the browser draws of a layout: the elements it lays out a box for. An element `display:
+ * none` hides, such as a closed panel or a label another state shows, draws no layer, so it is
+ * neither compared nor counted as drawing one.
+ */
+const displayedOnly = (measurement: MarkupMeasurement): MarkupMeasurement => ({
+  ...measurement,
+  elements: measurement.elements.filter((element) => element.displayed)
+})
+
 /** Lays the screen's code out at a viewport width, switched to a mode by its attributes. */
 type ScreenLayout = (
   width: number,
@@ -280,7 +290,8 @@ export async function checkScreenCode(
       graph,
       screen,
       file: entry.file,
-      layout: (width, rootAttributes) => host.measure({ ...request, width, rootAttributes }),
+      layout: async (width, rootAttributes) =>
+        displayedOnly(await host.measure({ ...request, width, rootAttributes })),
       designed,
       modes: checkedModes(graph, dom),
       options

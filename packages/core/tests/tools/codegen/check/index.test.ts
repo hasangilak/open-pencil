@@ -61,6 +61,7 @@ function faithfulBrowser(
         y: layer.y,
         width: layer.width,
         height: layer.height,
+        displayed: true,
         styles: {
           color: text && layer.color ? colorToCSS(layer.color) : 'rgb(0, 0, 0)',
           backgroundColor: !text && layer.color ? colorToCSS(layer.color) : 'rgba(0, 0, 0, 0)',
@@ -202,6 +203,35 @@ describe('check_code', () => {
       summary: 'src/screens/Home.tsx failed to render: no skipping.',
       checked: { layers: 0 }
     })
+  })
+
+  test('ignores an element display: none hides beside the one that draws its layer', async () => {
+    const design = screenDesign()
+    const card = layerNamed(design.graph, design.screen, 'Card')
+    const faithful = faithfulBrowser(design.graph, design.screen)
+    // A label another state shows, as a closed panel's or a variant's, is laid out with no box.
+    const measure: MarkupMeasurer = async (request) => {
+      const measurement = await faithful(request)
+      const shown = measurement.elements.find((element) => element.layer === card.id)
+      if (!shown) throw new Error('Expected the card drawn')
+      const hidden = { ...shown, x: 0, y: 0, width: 0, height: 0, displayed: false }
+      return { ...measurement, elements: [...measurement.elements, hidden] }
+    }
+    const report = await checkScreenCode(design.graph, design.screen, {
+      measure,
+      modules: APP_MODULES
+    })
+    expect(report.differences).toEqual([])
+    expect(report.pass).toBe(true)
+  })
+
+  test('reports a layer only a hidden element draws as one the code does not draw', async () => {
+    const report = await check(screenDesign(), (element, layer) => {
+      if (layer.name !== 'Card') return
+      Object.assign(element, { x: 0, y: 0, width: 0, height: 0, displayed: false })
+    })
+    expect(report.pass).toBe(false)
+    expect(report.differences).toMatchObject([{ name: 'Card', kind: 'missing' }])
   })
 
   test('reports a layer the code draws at another size, with both sizes', async () => {

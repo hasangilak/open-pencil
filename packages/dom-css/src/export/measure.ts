@@ -26,7 +26,10 @@ export interface MarkupMeasureRequest {
   mount?: (root: HTMLElement) => Promise<() => void>
 }
 
-/** The computed styles a check compares, as the browser reports them. */
+/**
+ * The computed styles a check compares, as the browser reports them. An input or textarea
+ * showing its placeholder reports its placeholder's text styles, which are what it draws.
+ */
 export interface MeasuredStyles {
   color: string
   backgroundColor: string
@@ -43,6 +46,11 @@ export interface MeasuredElement {
   y: number
   width: number
   height: number
+  /**
+   * The browser lays out a box for it; false for one `display: none` hides, itself or an
+   * element around it, such as a closed panel, which draws nothing.
+   */
+  displayed: boolean
   styles: MeasuredStyles
   /** Its content is wider than its box, as overflowing or clipped text is. */
   overflows: boolean
