@@ -16,6 +16,7 @@ import {
   textFieldSet,
   radioGroupComponent,
   settingsSectionSet,
+  signupFormComponent,
   switchSet,
   tabsComponent,
   toggleGroupComponent
@@ -207,8 +208,9 @@ describe('generated Vue components', () => {
       [...html.matchAll(/<button[^>]*aria-expanded="(true|false)"/g)].map((match) => match[1])
     expect(states(await render(component))).toEqual(['false', 'false'])
     expect(states(await render(component, { value: 'usage' }))).toEqual(['false', 'true'])
-    // The heading around each trigger keeps its level but not its own margins.
-    expect(await render(component)).toMatch(/<h3[^>]*style="margin:0;font:inherit;?"/)
+    // The heading around each trigger keeps its level but no box of its own, which would take
+    // the trigger's place in the item.
+    expect(await render(component)).toMatch(/<h3[^>]*style="display:contents;font:inherit;?"/)
   })
 
   test('a button sets its other variant properties as data attributes', async () => {
@@ -365,6 +367,16 @@ describe('generated Vue form controls', () => {
   test('a textarea starts with its words', async () => {
     const { component } = await generate(textareaComponent())
     expect(await render(component)).toMatch(/<textarea[^>]*>Tell us more<\/textarea>/)
+  })
+
+  test('a field used drawn filled starts with the words it is drawn with', async () => {
+    const { component } = await generate(signupFormComponent())
+    const inputs = (await render(component)).match(/<input[^>]*>/g) ?? []
+    expect(inputs).toHaveLength(2)
+    // Drawn empty, it shows its placeholder.
+    expect(inputs[0]).toContain('placeholder="Email"')
+    expect(inputs[0]).not.toContain('value="')
+    expect(inputs[1]).toContain('value="ada@example.com"')
   })
 })
 

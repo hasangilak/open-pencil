@@ -183,8 +183,8 @@ interface TemplateUses {
   layers: WeakMap<vue.VueElement, string>
   /** Effects of the `shaders` library its layers fill with. */
   shaders: Set<string>
-  /** A ref per nested control drawn on, which its `v-model` binds. */
-  models: { name: string }[]
+  /** A ref per nested control drawn on or field holding words, which its `v-model` binds. */
+  models: { name: string; value: es.SyntaxNode }[]
   taken: Set<string>
 }
 
@@ -193,10 +193,12 @@ const ICONIFY = 'IconifyIcon'
 
 function reference(node: ComponentReference, uses: TemplateUses): vue.VueElement {
   uses.components.add(node.component)
-  const model = node.model
-    ? claimName(`${camelCase(node.component)}${upperFirst(node.model)}`, uses.taken)
+  // A boolean drawn on, or the words a field holds, as its `value`.
+  const bound = node.model ?? (node.text === undefined ? null : 'value')
+  const model = bound
+    ? claimName(`${camelCase(node.component)}${upperFirst(bound)}`, uses.taken)
     : null
-  if (model) uses.models.push({ name: model })
+  if (model) uses.models.push({ name: model, value: es.json(node.text ?? true) })
   return vue.element(node.component, [
     vue.attribute('class', uses.classOf(node.className)),
     ...node.props.map((prop) =>
@@ -205,7 +207,7 @@ function reference(node: ComponentReference, uses: TemplateUses): vue.VueElement
         : vue.attribute(prop.name, prop.value)
     ),
     // The control stays operable, starting from the value the design draws.
-    ...(model && node.model ? [vue.model(identifier(model), node.model)] : [])
+    ...(model && bound ? [vue.model(identifier(model), bound)] : [])
   ])
 }
 
@@ -371,7 +373,7 @@ function namedImport(names: readonly string[], source: string, local = (name: st
 }
 
 const IMPORT_COMPONENT = es.parseModule(`import $Component from '$path'`)
-const MODEL_REF = es.parseModule('const $name = ref(true)')
+const MODEL_REF = es.parseModule('const $name = ref($value)')
 
 /** What the script imports: Vue's helpers, Iconify, Reka, and other generated components. */
 function scriptImports(uses: TemplateUses): es.SyntaxNode[] {
@@ -419,7 +421,7 @@ function modelDeclaration(component: ComponentModel, uses: TemplateUses): es.Syn
 function script(component: ComponentModel, uses: TemplateUses): es.SyntaxNode {
   const props = component.valueProp || hasDefaults(component) ? propsDeclaration(component) : []
   const refs = uses.models.flatMap(
-    (item) => es.fill(MODEL_REF, { $name: identifier(item.name) }).body
+    (item) => es.fill(MODEL_REF, { $name: identifier(item.name), $value: item.value }).body
   )
   return {
     type: 'Program',

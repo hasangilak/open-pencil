@@ -38,6 +38,8 @@ export interface ComponentReference {
   props: ReferenceProp[]
   /** The two-way value the instance is drawn with, when it is on. */
   model: string | null
+  /** The words a field's instance is drawn holding, which it starts with, when not its own. */
+  text?: string
 }
 
 /** An icon from a set, drawn by the framework's Iconify component. */
@@ -108,14 +110,32 @@ export function shownText(
 }
 
 /**
+ * The words a field's instance holds that the field does not start with: those it is drawn
+ * filled with, where the design draws the field empty and filled, else words other than its own.
+ */
+function heldText(
+  graph: SceneGraph,
+  instance: SceneNode,
+  component: ComponentModel,
+  values: Record<string, string>
+): Pick<ComponentReference, 'text'> {
+  const { text, args } = component
+  if (!text?.propertyId) return {}
+  if (args.filled && values[args.filled.property] !== args.filled.on) return {}
+  const shown = shownText(graph, instance, text.propertyId)
+  return shown === undefined || shown === text.default ? {} : { text: shown }
+}
+
+/**
  * What `instance` sets on `component`: the values it is drawn with that differ from defaults,
- * and whether it is drawn on: its model, or for a group's item the value that marks it chosen.
+ * whether it is drawn on: its model, or for a group's item the value that marks it chosen, and
+ * the words a field holds.
  */
 export function referenceValues(
   graph: SceneGraph,
   instance: SceneNode,
   component: ComponentModel
-): Pick<ComponentReference, 'props' | 'model'> {
+): Pick<ComponentReference, 'props' | 'model' | 'text'> {
   const values = instanceMainComponent(graph, instance)?.componentPropertyValues ?? {}
   const props: ReferenceProp[] = []
   let model: string | null = null
@@ -144,7 +164,7 @@ export function referenceValues(
       : prop.default
     if (value !== prop.default) props.push({ name: prop.name, value })
   }
-  return { props, model }
+  return { props, model, ...heldText(graph, instance, component, values) }
 }
 
 /** A used layer, before the parent's class name for it is known. */

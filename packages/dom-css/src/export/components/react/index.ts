@@ -139,7 +139,11 @@ function reference(node: ComponentReference, uses: MarkupUses, depth: number): e
       [
         jsx.attribute('className', classValue(uses.classOf(node.className))),
         ...node.props.map((prop) => jsx.attribute(prop.name, referenceValue(prop.value))),
-        ...(node.model ? [jsx.attribute(defaultOf(node.model), null)] : [])
+        ...(node.model ? [jsx.attribute(defaultOf(node.model), null)] : []),
+        // A field's input takes the caller's props, and starts with the words it holds.
+        ...(node.text === undefined
+          ? []
+          : [jsx.attribute(defaultOf('value'), jsx.stringValue(node.text))])
       ],
       [],
       depth

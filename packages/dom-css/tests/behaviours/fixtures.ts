@@ -636,6 +636,28 @@ export function textFieldSet() {
   return { graph, set: graph.getNode(set.id) ?? set }
 }
 
+/**
+ * A sign-up form using the email field twice, with the field's own set in the same document:
+ * drawn empty, showing its placeholder, and drawn filled with an address.
+ */
+export function signupFormComponent() {
+  const { graph, set: email } = textFieldSet()
+  const variant = (filled: string) => {
+    const found = graph.getChildren(email.id).find((child) => child.name === `Filled=${filled}`)
+    if (!found) throw new Error(`Expected the email field drawn Filled=${filled}`)
+    return found.id
+  }
+  const form = graph.createNode('COMPONENT', graph.getPages()[0].id, {
+    name: 'Signup',
+    y: 200,
+    width: 240,
+    height: 80
+  })
+  graph.createInstance(variant('No'), form.id, { name: 'Empty' })
+  graph.createInstance(variant('Yes'), form.id, { name: 'Filled', y: 44 })
+  return { graph, set: graph.getNode(form.id) ?? form }
+}
+
 /** A textarea starting with its words, with nothing drawn empty. */
 export function textareaComponent() {
   const fixture = standalone(

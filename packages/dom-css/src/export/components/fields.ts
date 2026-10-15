@@ -9,7 +9,8 @@ import {
   DEFAULT_NUMBER_SETTINGS,
   numberSettings,
   type Behaviour,
-  type ComponentPropertyDefinition
+  type ComponentPropertyDefinition,
+  type SceneNode
 } from '@open-pencil/scene-graph'
 
 import type { GeneratedKind, RangeModel, TextModel } from './model'
@@ -45,7 +46,10 @@ export function textModel(
 ): TextModel | null {
   if (kind !== 'textField' && kind !== 'textarea') return null
   const words = typeof definition?.defaultValue === 'string' ? definition.defaultValue : ''
-  return args.filled ? { default: '', placeholder: words } : { default: words, placeholder: null }
+  const propertyId = definition?.id ?? null
+  return args.filled
+    ? { default: '', placeholder: words, propertyId }
+    : { default: words, placeholder: null, propertyId }
 }
 
 /** A field's text layer drawn as its input, and the same layer in other words, which it replaces. */
@@ -102,9 +106,26 @@ const PLACED: Partial<Record<GeneratedKind, Record<string, readonly string[]>>> 
 }
 
 /**
- * Gives a number field's input, which the design draws as words that hug their value, room
- * for its longest value rather than an input's default width, and no spinner of the browser's
- * own, since the design draws its steppers.
+ * Sizes a field's input to its words where the design's words hug them, rather than at an
+ * input's default size: words that hug their width, and a textarea's that hug their height,
+ * which it grows with as it is typed in, as the text layer grows with its words. A browser
+ * without field sizing keeps the input's default size.
+ */
+export function wordSizedInput(
+  input: InputLayers | null,
+  kind: GeneratedKind,
+  layerOf: (element: StateElement) => Pick<SceneNode, 'type' | 'textAutoResize'> | undefined
+): void {
+  const text = input && layerOf(input.element)
+  if (!input || text?.type !== 'TEXT') return
+  const resize = text.textAutoResize
+  if (resize === 'WIDTH_AND_HEIGHT' || (kind === 'textarea' && resize === 'HEIGHT'))
+    input.element.base = { ...input.element.base, 'field-sizing': 'content' }
+}
+
+/**
+ * Gives a number field's input room for its longest value rather than an input's default
+ * width, and no spinner of the browser's own, since the design draws its steppers.
  */
 export function numberInput(input: InputLayers | null, range: RangeModel | null): void {
   if (!input || !range) return
@@ -117,7 +138,11 @@ export function numberInput(input: InputLayers | null, range: RangeModel | null)
   })
   if (Object.hasOwn(element.base, 'width')) return
   const digits = Math.max(String(range.min).length, String(range.max).length)
-  element.base = { ...element.base, width: `${digits + 1}ch` }
+  const room = `${digits + 1}ch`
+  // Where it sizes to its value the room is the most it grows to, which also keeps it from an
+  // input's default width in a browser without field sizing.
+  const sized = element.base['field-sizing'] === 'content'
+  element.base = { ...element.base, [sized ? 'max-width' : 'width']: room }
 }
 
 /** Kinds whose root Reka and Radix render as a span, which a size alone does not lay out. */

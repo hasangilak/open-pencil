@@ -15,10 +15,11 @@ export const BUTTON_RESET: Record<string, string> = {
 
 /**
  * Element styles the heading around an accordion trigger adds, cleared so the trigger lays
- * out as designed while the heading keeps its level.
+ * out as designed while the heading keeps its level: its font, and its box with its margins,
+ * which would take the trigger's place in the item and shrink to its content.
  */
 export const HEADING_RESET: Record<string, string> = {
-  margin: '0',
+  display: 'contents',
   font: 'inherit'
 }
 

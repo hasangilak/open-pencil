@@ -17,6 +17,7 @@ import {
   labelledButtonSet,
   radioGroupComponent,
   settingsSectionSet,
+  signupFormComponent,
   switchSet,
   tabsComponent,
   toggleGroupComponent
@@ -28,6 +29,8 @@ import { exportStorybook } from '#dom-css/index'
 import { createElement, type ComponentType } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import ts from 'typescript'
+
+import type { SceneNode } from '@open-pencil/scene-graph'
 
 /** The packages generated code imports, linked so it resolves them as an app would. */
 const APP_PACKAGES = [
@@ -266,6 +269,46 @@ describe('generated React form controls', () => {
     const { component } = await generate(textareaComponent())
     expect(render(component)).toMatch(/<textarea[^>]*>Tell us more<\/textarea>/)
   })
+
+  test('an input sizes to its words where the design’s words hug them', async () => {
+    const inputStyle = async (
+      fixture: ReturnType<typeof textFieldSet>,
+      resize: SceneNode['textAutoResize']
+    ) => {
+      for (const node of fixture.graph.getAllNodes())
+        if (node.type === 'TEXT') fixture.graph.updateNode(node.id, { textAutoResize: resize })
+      const name = fixture.set.name
+      const { files } = await generate(fixture)
+      const input = /<(?:input|textarea)\b.*?className=\{styles(?:\.(\w+)|\["([\w-]+)"\])\}/.exec(
+        fileText(files, `${name}.tsx`)
+      )
+      const className = input?.[1] ?? input?.[2]
+      return cssRules(fileText(files, `${name}.module.css`)).get(
+        `.${name.toLowerCase()} .${className}`
+      )
+    }
+    // Words that hug their width, and a textarea's that hug their height, grow as typed.
+    expect((await inputStyle(textFieldSet(), 'WIDTH_AND_HEIGHT'))?.['field-sizing']).toBe('content')
+    expect((await inputStyle(textareaComponent(), 'HEIGHT'))?.['field-sizing']).toBe('content')
+    // Words in a fixed box keep it.
+    expect((await inputStyle(textFieldSet(), 'NONE'))?.['field-sizing']).toBeUndefined()
+    expect((await inputStyle(textFieldSet(), 'HEIGHT'))?.['field-sizing']).toBeUndefined()
+    // A number field's value grows no wider than its longest value, which is its width where a
+    // browser cannot size it to its value.
+    const count = await inputStyle(numberFieldComponent(), 'WIDTH_AND_HEIGHT')
+    expect(count).toMatchObject({ 'field-sizing': 'content', 'max-width': '3ch' })
+    expect(count?.width).toBeUndefined()
+  })
+
+  test('a field used drawn filled starts with the words it is drawn with', async () => {
+    const { component } = await generate(signupFormComponent())
+    const inputs = render(component).match(/<input[^>]*>/g) ?? []
+    expect(inputs).toHaveLength(2)
+    // Drawn empty, it shows its placeholder.
+    expect(inputs[0]).toContain('placeholder="Email"')
+    expect(inputs[0]).not.toContain('value=')
+    expect(inputs[1]).toContain('value="ada@example.com"')
+  })
 })
 
 describe('generated React components', () => {
@@ -384,8 +427,9 @@ describe('generated React components', () => {
       [...html.matchAll(/<button[^>]*aria-expanded="(true|false)"/g)].map((match) => match[1])
     expect(states(render(component))).toEqual(['false', 'false'])
     expect(states(render(component, { defaultValue: 'usage' }))).toEqual(['false', 'true'])
-    // The heading around each trigger keeps its level but not its own margins.
-    expect(render(component)).toMatch(/<h3[^>]*style="margin:0;font:inherit"/)
+    // The heading around each trigger keeps its level but no box of its own, which would take
+    // the trigger's place in the item.
+    expect(render(component)).toMatch(/<h3[^>]*style="display:contents;font:inherit"/)
   })
 
   test('a single choice group takes the single choice props Radix types', async () => {

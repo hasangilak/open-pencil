@@ -30,7 +30,8 @@ import {
   inputValue,
   numberInput,
   rangeModel,
-  textModel
+  textModel,
+  wordSizedInput
 } from './fields'
 import {
   groupItems,
@@ -151,6 +152,8 @@ export interface RangeModel {
 export interface TextModel {
   default: string
   placeholder: string | null
+  /** The text property the input shows, which an instance's words are read from. */
+  propertyId: string | null
 }
 
 export type ComponentNode =
@@ -507,6 +510,8 @@ export function componentModel(
   const elements = allElements(styles.root)
   const texts = textProps(graph, set, elements, taken, inputProperty)
   const input = inputLayers(texts.input)
+  const layerOf = (element: StateElement) => drawnLayerOf(graph, styles, variantIds, element)
+  wordSizedInput(input, kind, (element) => graph.getNode(layerOf(element) ?? ''))
   numberInput(input, range)
   const { booleans, shownBy } = booleanProps(graph, set, elements, taken)
   const { slots, slotOf } = slotProps(graph, set, elements, taken, parts)
@@ -528,7 +533,7 @@ export function componentModel(
         shownBy,
         slotOf,
         shaders: shaderLayers(graph, styles.restId, allElements(styles.root)),
-        layerOf: (element) => drawnLayerOf(graph, styles, variantIds, element)
+        layerOf
       },
       rootBindings(model, !!options.itemOf, disabled, props)
     ),
