@@ -22,8 +22,9 @@ describe('Tailwind JSX appearance classes', () => {
     })
     const jsx = tw(graph, node.id)
     expect(jsx).toContain('bg-white')
-    // twirlwind maps 2px border correctly
-    expect(jsx).toContain('border-[#FF0000]')
+    // A stroke takes no room, as in the design: a spread shadow, not a border.
+    expect(jsx).toContain('shadow-[inset_0_0_0_2px_#FF0000]')
+    expect(jsx).not.toContain('border')
   })
 
   test('border radius — named values', () => {

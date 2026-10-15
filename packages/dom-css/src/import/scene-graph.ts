@@ -5,15 +5,14 @@ import {
   SceneGraph,
   type Fill,
   type ImageScaleMode,
-  type SceneNode,
-  type Stroke
+  type SceneNode
 } from '@open-pencil/scene-graph'
 import { TRANSPARENT } from '@open-pencil/scene-graph/constants'
 import { parseCSSAlignSelf, parseCSSNumber, parseCSSShadows } from '@open-pencil/scene-graph/css'
 import { computeImageHash } from '@open-pencil/scene-graph/images'
 
 import type { DesignDocument, DesignElement, DesignNode, DesignStyleDeclaration } from '../types'
-import { colorToFillFromCSS, colorToStrokeFromCSS, mergedStyle, pickStyle } from './css-values'
+import { colorToFillFromCSS, mergedStyle, pickStyle } from './css-values'
 import {
   applyContainerLayout,
   applyFlowSizing,
@@ -23,6 +22,7 @@ import {
   type ParentFlow
 } from './flow'
 import { applyPositioning } from './insets'
+import { borderStyleFromCSS, strokeFromCSS, type CSSStroke } from './strokes'
 import {
   blockRichText,
   characterStyleFromCSS,
@@ -105,59 +105,17 @@ function setNodeBox(node: SceneNode, style: DesignStyleDeclaration): void {
   if (maxHeight !== null) node.maxHeight = maxHeight
 }
 
-function firstStrokeColor(style: DesignStyleDeclaration) {
-  return (
-    pickStyle(style, 'border-color') ??
-    pickStyle(style, 'border-top-color') ??
-    pickStyle(style, 'border-right-color') ??
-    pickStyle(style, 'border-bottom-color') ??
-    pickStyle(style, 'border-left-color')
-  )
-}
-
-function strokeWeightFromStyle(style: DesignStyleDeclaration) {
-  const borderWidth = firstCSSNumber(style, 'border-width')
-  if (borderWidth !== null) return borderWidth
-
-  const sideWeights = [
-    firstCSSNumber(style, 'border-top-width'),
-    firstCSSNumber(style, 'border-right-width'),
-    firstCSSNumber(style, 'border-bottom-width'),
-    firstCSSNumber(style, 'border-left-width')
-  ].filter((weight): weight is number => weight !== null)
-  if (sideWeights.length === 0) return null
-  return Math.max(...sideWeights)
-}
-
-function borderStyleFromCSS(style: DesignStyleDeclaration): string | undefined {
-  return (
-    pickStyle(style, 'border-style') ??
-    pickStyle(style, 'border-top-style') ??
-    pickStyle(style, 'border-right-style') ??
-    pickStyle(style, 'border-bottom-style') ??
-    pickStyle(style, 'border-left-style')
-  )
-}
-
-function dashPatternFromCSS(style: DesignStyleDeclaration, strokeWeight: number): number[] {
-  const borderStyle = borderStyleFromCSS(style)
-  if (borderStyle === 'dashed') return [strokeWeight * 3, strokeWeight * 2]
-  if (borderStyle === 'dotted') return [strokeWeight, strokeWeight]
-  return []
-}
-
-function setBorderWeights(node: SceneNode, style: DesignStyleDeclaration, stroke: Stroke): void {
-  const top = firstCSSNumber(style, 'border-top-width') ?? stroke.weight
-  const right = firstCSSNumber(style, 'border-right-width') ?? stroke.weight
-  const bottom = firstCSSNumber(style, 'border-bottom-width') ?? stroke.weight
-  const left = firstCSSNumber(style, 'border-left-width') ?? stroke.weight
+function applyStroke(node: SceneNode, { stroke, sides, takesSpace }: CSSStroke): void {
+  node.strokes = [stroke]
+  if (stroke.dashPattern) node.dashPattern = stroke.dashPattern
+  const [top, right, bottom, left] = sides
   node.borderTopWeight = top
   node.borderRightWeight = right
   node.borderBottomWeight = bottom
   node.borderLeftWeight = left
-  node.independentStrokeWeights = [top, right, bottom, left].some(
-    (weight) => weight !== stroke.weight
-  )
+  node.independentStrokeWeights = sides.some((weight) => weight !== stroke.weight)
+  // A border takes room, as Figma's strokes included in an auto layout frame's layout do.
+  node.strokesIncludedInLayout = takesSpace
 }
 
 function applyCornerRadii(node: SceneNode, style: DesignStyleDeclaration): void {
@@ -304,21 +262,8 @@ function applyElementStyle(
   if (fills.length > 0) node.fills = fills
   applyImageFill(graph, node, element, style)
 
-  const strokes = colorToStrokeFromCSS(
-    firstStrokeColor(style),
-    strokeWeightFromStyle(style)?.toString()
-  )
-  if (strokes.length > 0) {
-    const dashPattern = dashPatternFromCSS(style, strokes[0].weight)
-    if (dashPattern.length > 0) {
-      strokes[0].dashPattern = dashPattern
-      node.dashPattern = dashPattern
-    }
-    node.strokes = strokes
-    setBorderWeights(node, style, strokes[0])
-  }
-
-  const effects = parseCSSShadows(pickStyle(style, 'box-shadow'))
+  const { stroke, effects } = strokeFromCSS(style)
+  if (stroke) applyStroke(node, stroke)
   if (effects.length > 0) node.effects = effects
 
   const opacity = parseCSSNumber(pickStyle(style, 'opacity'))
@@ -454,6 +399,7 @@ function hasBoxStyle(style: DesignStyleDeclaration): boolean {
     'border-left-width',
     'border-radius',
     'box-shadow',
+    'outline-style',
     'display',
     'height',
     'padding',

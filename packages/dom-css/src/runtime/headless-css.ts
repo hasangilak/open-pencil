@@ -149,7 +149,7 @@ function longhandsOf(property: string, value: string): DesignStyleDeclaration {
   if (property === 'margin' || property === 'padding') return boxSides(property, value)
   const logical = /^(margin|padding)-(inline|block)$/u.exec(property)
   if (logical) return logicalSides(property, value, logical[2] === 'inline')
-  if (property === 'border') return borderLonghands(value)
+  if (property === 'border' || property === 'outline') return lineLonghands(property, value)
   if (property === 'background') {
     const color = splitCSSValue(value).find(isColor)
     return color ? { 'background-color': color } : {}
@@ -177,15 +177,20 @@ function logicalSides(property: string, value: string, inline: boolean): DesignS
   return { [`${box}-${start}`]: first, [`${box}-${end}`]: second }
 }
 
-function borderLonghands(value: string): DesignStyleDeclaration {
+/** A `border` or `outline` shorthand as its width, style, and color, in any order. */
+function lineLonghands(property: 'border' | 'outline', value: string): DesignStyleDeclaration {
   const parts = splitCSSValue(value)
   const longhands: DesignStyleDeclaration = {}
   const color = parts.find(isColor)
   const width = parts.find((part) => parseCSSNumber(part) !== null)
-  const style = parts.find((part) => BORDER_STYLES.has(part.toLowerCase()))
-  if (color) longhands['border-color'] = color
-  if (width) longhands['border-width'] = width
-  if (style) longhands['border-style'] = style.toLowerCase()
+  const style = parts.find((part) => {
+    const name = part.toLowerCase()
+    // An outline's style may also be `auto`, the platform's focus ring.
+    return BORDER_STYLES.has(name) || (property === 'outline' && name === 'auto')
+  })
+  if (color) longhands[`${property}-color`] = color
+  if (width) longhands[`${property}-width`] = width
+  if (style) longhands[`${property}-style`] = style.toLowerCase()
   return longhands
 }
 

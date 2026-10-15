@@ -29,14 +29,20 @@ export function dropShadowToCSS(effect: Effect | undefined): string | undefined 
   return shadowToCSS(effect)
 }
 
-/** Every visible shadow, in order, plus layer and background blur. */
-export function effectsToCSS(effects: Effect[]): DesignStyleDeclaration {
+/**
+ * Every visible shadow plus layer and background blur. A stroke drawn as shadows (`strokes`)
+ * sits beneath the inner shadows and above the drop shadows, as the canvas paints them; CSS
+ * paints the first shadow on top, and inset and outer shadows never overlap.
+ */
+export function effectsToCSS(effects: Effect[], strokes: string[] = []): DesignStyleDeclaration {
   const style: DesignStyleDeclaration = {}
   const visible = effects.filter((effect) => effect.visible)
-  const shadows = visible.filter(
-    (effect) => effect.type === 'DROP_SHADOW' || effect.type === 'INNER_SHADOW'
-  )
-  if (shadows.length > 0) style['box-shadow'] = shadows.map(shadowToCSS).join(', ')
+  const shadows = [
+    ...visible.filter((effect) => effect.type === 'INNER_SHADOW').map(shadowToCSS),
+    ...strokes,
+    ...visible.filter((effect) => effect.type === 'DROP_SHADOW').map(shadowToCSS)
+  ]
+  if (shadows.length > 0) style['box-shadow'] = shadows.join(', ')
   for (const effect of visible) {
     if (effect.type === 'LAYER_BLUR' || effect.type === 'FOREGROUND_BLUR')
       style.filter = `blur(${effect.radius}px)`

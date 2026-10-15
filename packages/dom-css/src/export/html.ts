@@ -84,6 +84,12 @@ const SPACING_FONT_SIZE = /^text-\d+(\.\d+)?$/
  */
 const SPACING_TRACKING = /^-?tracking-(\d+(\.\d+)?|px)$/
 
+/**
+ * A one-pixel outline offset, such as `-outline-offset-px` for -1px, which twirlwind writes but
+ * Tailwind v4 compiles to nothing: its offsets are numbers of pixels, without `px`.
+ */
+const PIXEL_OUTLINE_OFFSET = /^-?outline-offset-px$/
+
 /** A utility naming a palette shade, such as `bg-violet-600`: its prefix and the shade. */
 const PALETTE_SHADE = /^(.+)-([a-z]+-\d{2,3})$/
 
@@ -106,8 +112,9 @@ function exactColor(utility: string, converted: readonly ConvertedDeclaration[])
 }
 
 /**
- * Declarations as Tailwind utilities, as twirlwind writes them, with any font size or letter
- * spacing off the theme's scale written as an arbitrary value, so every utility compiles, a
+ * Declarations as Tailwind utilities, as twirlwind writes them, with any font size, letter
+ * spacing, or pixel outline offset off the theme's scale written as an arbitrary value, so every
+ * utility compiles, a
  * `normal` line height kept as CSS means it, and colors as exact as the design's
  * (`packages/dom-css/tests/export/tailwind-jsx/compiles.test.ts`).
  */
@@ -122,12 +129,15 @@ export function tailwindUtilities(
   if (!css) return []
   const fontSize = style['font-size']?.trim()
   const letterSpacing = style['letter-spacing']?.trim()
+  const outlineOffset = style['outline-offset']?.trim()
   const normalLineHeight = style['line-height']?.trim() === 'normal'
   const converted = twirl.convert(css, { theme: { variables: themeVariables } })
   return splitWhitespace(converted.className).map((utility) => {
     if (fontSize && SPACING_FONT_SIZE.test(utility)) return `text-${arbitrary(fontSize)}`
     if (letterSpacing && SPACING_TRACKING.test(utility))
       return `tracking-${arbitrary(letterSpacing)}`
+    if (outlineOffset && PIXEL_OUTLINE_OFFSET.test(utility))
+      return `outline-offset-${arbitrary(outlineOffset)}`
     // Tailwind's `leading-normal` is 1.5, not the font's own line height CSS calls `normal`.
     if (normalLineHeight && utility === 'leading-normal') return 'leading-[normal]'
     return exactColor(utility, converted.exact)

@@ -24,11 +24,12 @@ OpenPencil maps browser-computed DOM/CSS styles into SceneGraph fields through `
 |---|---|---|
 | `background-color` | solid fill | Transparent values are ignored. |
 | `border-color`, `border-*-color` | stroke color | First available border color is used. |
-| `border-width`, `border-*-width` | stroke weight / independent stroke weights | Side-specific widths set independent stroke weights. |
+| `border-width`, `border-*-width` | inside stroke, independent stroke weights, `strokesIncludedInLayout` | Side-specific widths set independent stroke weights. A border takes room, so its stroke is included in the layout, which Figma honors on auto layout frames. |
 | `border-style: dashed/dotted` | `dashPattern` | Unsupported border styles fall back to solid. |
+| `outline-width`, `outline-color`, `outline-style`, `outline-offset` | stroke | Read when there is no border. An outline takes no room. Its offset sets the alignment: `-weight` is inside, `-weight/2` is center, and `0` or more is outside. Dashed and dotted set `dashPattern`. |
 | `border-radius`, `border-*-radius` | corner radii | Independent corners are preserved when sides differ. |
 | `opacity` | node opacity | Numeric computed value. |
-| `box-shadow` | drop shadow | First simple outer shadow only; complex shadow lists require maintained parser or browser-computed support before mapping. |
+| `box-shadow` | drop and inner shadows, or a stroke | Each shadow in the list is an effect, except unblurred shadows of one color that draw a stroke when there is no border or outline. A ring spreads evenly, as Tailwind's `ring` and `inset-ring` do: inset is inside, outer is outside, and one of each as wide is centered. A band is moved straight off one side and sets that side's weight. |
 | `<img src="data:...">` | image fill | Data URL images are stored in the graph image map. |
 | `<img src="https://...">` | preserved source URL metadata | External URL fetching is not performed; the URL is retained for HTML round-trip. |
 | `object-fit: contain/cover` | image `FIT` / `FILL` scale mode | `scale-down` maps to `FIT`; other object-fit values are not mapped yet. |
@@ -61,11 +62,24 @@ HTML export, Tailwind HTML, and Tailwind JSX (`sceneNodesToTailwindJSX`) share o
 | grid child position | `grid-column`, `grid-row`, `*-start` | Spans are written before starts. |
 | `layoutGrow` in auto layout | `flex-grow: 1` | |
 | rotation | `transform: rotate()` | Rotates around the element center. |
-| drop and inner shadows | `box-shadow` | Every visible shadow, in order; inner shadows use `inset`. |
+| drop and inner shadows | `box-shadow` | Every visible shadow; inner shadows use `inset`. |
 | layer / background blur | `filter` / `backdrop-filter: blur()` | |
 | right-to-left layout or text | `direction: rtl` | |
 | section | `<section>` | |
 | colors | hex, or `rgba()` when translucent | Tailwind export keeps a color off Tailwind v4's palette as its value, such as `bg-[#7C3AED]`, rather than the v4 shade of a v3 color. |
+
+### Strokes
+
+A layer's first visible stroke is drawn where the design draws it, and it takes no room unless the design gives it room. The canvas and Figma never lay out a stroke unless it is included in an auto layout frame's layout. A CSS border always takes room: it would move content inward by the weight and narrow it by twice the weight.
+
+| SceneGraph | CSS | Notes |
+|---|---|---|
+| stroke | `box-shadow` spread | Inside is `inset 0 0 0 <weight>`, outside is `0 0 0 <weight>`, and center is half of each. It follows corner radii, keeps weights under a pixel, paints beneath the layer's children as the canvas and Figma do, and leaves focus outlines alone. It sits beneath inner shadows and above drop shadows. Tailwind writes it as `shadow-[…]`. |
+| independent stroke weights | `box-shadow` bands | Each side is a shadow moved off that side by its weight, such as `inset 0 1px 0 0` for a top inside stroke. Equal sides are one ring. |
+| stroke included in an auto layout frame's layout (`strokesIncludedInLayout`) | `border`, `box-sizing: border-box` | Figma's included strokes behave like `border-box`: children sit inside the stroke. The canvas does not lay out included strokes yet, so its children sit on the stroke where the export's do not. |
+| dashed stroke | `outline`, `outline-offset` | No shadow draws dashes. The offset is `-weight` inside, `-weight/2` center, and none outside. CSS dash lengths do not follow `dashPattern`, and an outline paints above the layer's children. Dashed independent weights are a border, which takes room, since neither an outline nor a shadow draws them. |
+| stroke of an image or a shader layer | `outline`, `outline-offset` | The image or the shader's canvas would cover an inset shadow. Outside strokes stay shadows. Independent weights are a border. |
+| line | `box-shadow: 0 0 0 <weight/2>` | A line has no inside or height: half the weight spreads to either side, and past the ends as a square cap would. A dashed line is its top border. |
 
 ## Browser-oracle but not mapped yet
 
@@ -73,7 +87,6 @@ These values are collected or covered by browser oracle tests but do not yet hav
 
 - complex gradients
 - CSS filters
-- multi-shadow lists
 - media-query-specific provenance
 - pseudo-elements
 

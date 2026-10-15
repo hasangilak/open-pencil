@@ -320,12 +320,12 @@ describe('@open-pencil/dom-css conversion', () => {
     expect(roundTripPanel?.type).toBe('element')
     if (roundTripPanel?.type !== 'element') return
     expect(roundTripPanel.inlineStyle?.overflow).toBe('hidden')
-    expect(roundTripPanel.inlineStyle).toMatchObject({
-      'min-width': '240px',
-      'box-sizing': 'border-box'
-    })
-    expect(roundTripPanel.inlineStyle?.['border-top-width']).toBe('1px')
-    expect(roundTripPanel.inlineStyle?.['border-left-width']).toBe('4px')
+    expect(roundTripPanel.inlineStyle?.['min-width']).toBe('240px')
+    // A frame without auto layout gives its strokes no room, so they come back as side bands.
+    expect(roundTripPanel.inlineStyle?.['box-shadow']).toBe(
+      'inset 0 1px 0 0 #E5E7EB, inset -2px 0 0 0 #E5E7EB, inset 0 -3px 0 0 #E5E7EB, inset 4px 0 0 0 #E5E7EB'
+    )
+    expect(roundTripPanel.inlineStyle?.['border-top-width']).toBeUndefined()
     expect(roundTripPanel.inlineStyle?.['border-bottom-left-radius']).toBe('16px')
   })
 

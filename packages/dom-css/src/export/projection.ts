@@ -13,9 +13,10 @@ import { resolveNodeTextDirection } from '@open-pencil/scene-graph/text-directio
 
 import { DesignTokens, type CSSModes } from '../tokens/references'
 import type { DesignDocument, DesignElement, DesignNode, DesignStyleDeclaration } from '../types'
-import { cssColor, dropShadowToCSS, effectsToCSS, fillToCSS, strokeColorToCSS } from './css'
+import { cssColor, dropShadowToCSS, effectsToCSS, fillToCSS } from './css'
 import { addGridContainer, addGridPlacement } from './grid'
 import { addPositioning, placesLayersOutsideLayout } from './placement'
+import { strokeToCSS } from './strokes'
 import { textCaseToCSS, textElementContent } from './text'
 
 const DOM_CSS_PLUGIN_ID = 'open-pencil-dom-css'
@@ -150,26 +151,6 @@ function addCornerRadii(style: DesignStyleDeclaration, node: SceneNode, css: Fie
   if (node.cornerRadius > 0) style['border-radius'] = css('cornerRadius', px(node.cornerRadius))
 }
 
-function addStroke(style: DesignStyleDeclaration, node: SceneNode, css: FieldCSS): void {
-  const stroke = node.strokes.at(0)
-  const literalColor = strokeColorToCSS(stroke)
-  if (!literalColor || !stroke) return
-  const color = css('strokes/0/color', literalColor)
-  const borderStyle = node.dashPattern.length > 0 ? 'dashed' : 'solid'
-  if (!node.independentStrokeWeights) {
-    style.border = `${css('strokeWeight', px(stroke.weight))} solid ${color}`
-    if (borderStyle !== 'solid') style['border-style'] = borderStyle
-    return
-  }
-
-  style['border-style'] = borderStyle
-  style['border-color'] = color
-  style['border-top-width'] = css('borderTopWeight', px(node.borderTopWeight))
-  style['border-right-width'] = css('borderRightWeight', px(node.borderRightWeight))
-  style['border-bottom-width'] = css('borderBottomWeight', px(node.borderBottomWeight))
-  style['border-left-width'] = css('borderLeftWeight', px(node.borderLeftWeight))
-}
-
 const PADDING_FIELDS = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const
 
 /** Sides compare by their CSS, so a token and a literal of the same size stay separate. */
@@ -292,8 +273,8 @@ function styleFromSceneNode(
   const fill = fillToCSS(node.fills.at(0))
   if (fill) style['background-color'] = css('fills/0/color', fill)
   addImageStyle(style, node)
-  addStroke(style, node, css)
-  Object.assign(style, effectsToCSS(node.effects))
+  const stroke = strokeToCSS(node, css, coversInset(node))
+  Object.assign(style, stroke.style, effectsToCSS(node.effects, stroke.shadows))
   if (node.opacity < 1) style.opacity = css('opacity', String(node.opacity))
   addCornerRadii(style, node, css)
   if (node.clipsContent) style.overflow = 'hidden'
@@ -403,6 +384,15 @@ function tagNameForNode(node: SceneNode): string {
   const image = fill?.type === 'IMAGE' && !shaderOfPaint(node, fill)
   if ((image || imageSourceURL(node)) && node.childIds.length === 0) return 'img'
   return 'div'
+}
+
+/**
+ * Whether a layer's own content covers what CSS paints inside its box beneath its children, as
+ * an image's pixels and a shader's canvas do.
+ */
+function coversInset(node: SceneNode): boolean {
+  const fill = node.fills.at(0)
+  return tagNameForNode(node) === 'img' || Boolean(fill?.visible && shaderOfPaint(node, fill))
 }
 
 interface ProjectionContext {

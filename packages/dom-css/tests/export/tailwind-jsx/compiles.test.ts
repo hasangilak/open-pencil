@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import { compileTailwindCSS } from '#dom-css/import/tailwind'
 import { compact } from 'es-toolkit/array'
 
-import type { ConstraintType } from '@open-pencil/scene-graph'
+import type { ConstraintType, SceneNode, Stroke } from '@open-pencil/scene-graph'
 
 import { makeGraph, pageId, tw } from './helpers'
 
@@ -91,6 +91,42 @@ describe('Tailwind JSX utilities compile', () => {
     const used = [...new Set(utilities(tw(graph, frame.id)))]
     const css = await compileTailwindCSS(used)
     expect(used.filter((utility) => !hasRule(css, utility))).toEqual([])
+  })
+
+  test('every way the export draws a stroke is one Tailwind compiles', async () => {
+    const graph = makeGraph()
+    const strokes = graph.createNode('FRAME', pageId(graph), {
+      name: 'Strokes',
+      width: 600,
+      height: 400,
+      layoutMode: 'VERTICAL'
+    })
+    const red = { ...WHITE, color: { r: 1, g: 0, b: 0, a: 1 } }
+    const stroke = (align: Stroke['align'], weight = 2): Stroke => ({ ...red, weight, align })
+    const sides = { independentStrokeWeights: true, borderTopWeight: 1, borderBottomWeight: 2 }
+    const layers: [SceneNode['type'], Partial<SceneNode>][] = [
+      ['FRAME', { strokes: [stroke('INSIDE')] }],
+      ['FRAME', { strokes: [stroke('CENTER')] }],
+      ['FRAME', { strokes: [stroke('OUTSIDE', 0.5)] }],
+      ['FRAME', { strokes: [stroke('CENTER')], ...sides }],
+      ['FRAME', { strokes: [stroke('CENTER')], dashPattern: [6, 4] }],
+      ['FRAME', { strokes: [stroke('INSIDE', 1)], dashPattern: [6, 4] }],
+      ['FRAME', { strokes: [stroke('INSIDE')], dashPattern: [6, 4], ...sides }],
+      [
+        'FRAME',
+        { strokes: [stroke('INSIDE')], layoutMode: 'HORIZONTAL', strokesIncludedInLayout: true }
+      ],
+      ['LINE', { height: 0, strokes: [stroke('CENTER', 1)] }],
+      ['LINE', { height: 0, strokes: [stroke('CENTER', 1)], dashPattern: [4, 4] }]
+    ]
+    for (const [type, fields] of layers)
+      graph.createNode(type, strokes.id, { width: 120, height: 48, ...fields })
+
+    const used = [...new Set(utilities(tw(graph, strokes.id)))]
+    const css = await compileTailwindCSS(used)
+    expect(used.filter((utility) => !hasRule(css, utility))).toEqual([])
+    // twirlwind writes Tailwind v3's `-outline-offset-px`, which v4 has no rule for.
+    expect(used).toContain('outline-offset-[-1px]')
   })
 
   test('a font size on the spacing scale is written as its value', () => {
