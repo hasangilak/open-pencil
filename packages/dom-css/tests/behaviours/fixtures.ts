@@ -413,6 +413,22 @@ export function radioGroupComponent() {
 }
 
 /**
+ * A checkout using the radio group, its items instances nested in the group's, placed as an
+ * editor places one: copied from the group with each layer linked to the one it copies.
+ */
+export function checkoutComponent() {
+  const { graph, set: plan } = radioGroupComponent()
+  const checkout = graph.createNode('COMPONENT', graph.getPages()[0].id, {
+    name: 'Checkout',
+    y: 200,
+    width: 160,
+    height: 80
+  })
+  graph.createInstance(plan.id, checkout.id, { name: 'Plan' })
+  return { graph, set: graph.getNode(checkout.id) ?? checkout }
+}
+
+/**
  * A toggle group of the standalone toggle, which a document can also use on its own, the
  * first chosen.
  */

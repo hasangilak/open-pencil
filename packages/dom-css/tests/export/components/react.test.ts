@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path'
 import {
   accordionComponent,
   cartComponent,
+  checkoutComponent,
   badgeToggleSet,
   numberFieldComponent,
   plainBadgeSet,
@@ -420,6 +421,13 @@ describe('generated React components', () => {
     expect(checked(drawn)).toEqual([false, true, false])
     expect(drawn).toContain('Team')
     expect(checked(render(component, { defaultValue: 'team' }))).toEqual([false, false, true])
+  })
+
+  test('an instance of a group uses the group, its nested items included', async () => {
+    const { files, component } = await generate(checkoutComponent())
+    expect(fileText(files, 'Checkout.tsx')).toMatch(/<Plan\b/)
+    const radios = render(component).match(/<button[^>]*role="radio"[^>]*>/g) ?? []
+    expect(radios.map((tag) => tag.includes('aria-checked="true"'))).toEqual([false, true, false])
   })
 
   test("a toggle group's items are the group's item, not the standalone toggle", async () => {

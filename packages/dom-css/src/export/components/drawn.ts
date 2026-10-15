@@ -1,9 +1,10 @@
 import { isEqual } from 'es-toolkit/predicate'
 
-import type {
-  ComponentPropertyReferenceField,
-  SceneGraph,
-  SceneNode
+import {
+  instanceMainComponent,
+  type ComponentPropertyReferenceField,
+  type SceneGraph,
+  type SceneNode
 } from '@open-pencil/scene-graph'
 
 /** What a layer draws, which an instance can change without a property. */
@@ -58,7 +59,13 @@ function layerMatches(graph: SceneGraph, drawn: SceneNode, main: SceneNode): boo
   if (drawn.type !== main.type) return false
   if (!bound(main, 'VISIBLE') && drawn.visible !== main.visible) return false
   if (drawn.type === 'TEXT' && !bound(main, 'TEXT') && drawn.text !== main.text) return false
-  if (drawn.type === 'INSTANCE' && drawn.componentId !== main.componentId) return false
+  // A nested instance links to the layer of the component it was copied from, and shows that
+  // layer's main component unless swapped.
+  if (
+    drawn.type === 'INSTANCE' &&
+    instanceMainComponent(graph, drawn)?.id !== instanceMainComponent(graph, main)?.id
+  )
+    return false
   return same(drawn, main, DRAWN) && same(drawn, main, LAYOUT) && childrenMatch(graph, drawn, main)
 }
 
