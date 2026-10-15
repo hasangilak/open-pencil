@@ -1,4 +1,4 @@
-import type { SceneNode, Stroke } from '@open-pencil/scene-graph'
+import { strokeInLayout, type SceneNode, type Stroke } from '@open-pencil/scene-graph'
 
 import type { DesignStyleDeclaration } from '../types'
 import { strokeColorToCSS } from './css'
@@ -49,14 +49,6 @@ function strokeWeights(node: SceneNode, stroke: Stroke, css: FieldCSS): StrokeWe
   const [top] = sides
   if (sides.every((side) => side.css === top.css)) return { uniform: top }
   return { sides }
-}
-
-/**
- * Whether a stroke takes room in its layer's layout. Figma's `strokesIncludedInLayout` does on
- * an auto layout frame, which then behaves like `box-sizing: border-box`, as a CSS border does.
- */
-function takesSpace(node: SceneNode): boolean {
-  return node.strokesIncludedInLayout && node.layoutMode !== 'NONE'
 }
 
 function border(weights: StrokeWeights, color: string, dashed: boolean): DesignStyleDeclaration {
@@ -132,23 +124,25 @@ function lineStroke(weight: Weight, color: string, dashed: boolean): StrokeCSS {
 }
 
 /**
- * A layer's first stroke, drawn where the design draws it without taking room the design does
- * not give it: as `box-shadow` spread, which follows the corners, takes no room, and paints
- * beneath the layer's children, as the canvas and Figma draw a frame's stroke. A stroke that
- * takes room is a border. A dashed one, or one inside a layer whose own content covers an inset
- * shadow (`coversInset`: an image or a shader), is an outline offset into the layer, which has
- * one weight; with side weights it stays a border.
+ * A layer's first visible stroke, drawn where the design draws it without taking room the design
+ * does not give it: as `box-shadow` spread, which follows the corners, takes no room, and paints
+ * beneath the layer's children, as the canvas and Figma draw a frame's stroke. A stroke its auto
+ * layout makes room for (`strokeInLayout`) is a border, which insets the children as layout
+ * does. A dashed one, or one inside a layer whose own content covers an inset shadow
+ * (`coversInset`: an image or a shader), is an outline offset into the layer, which has one
+ * weight; with side weights it stays a border.
  */
 export function strokeToCSS(node: SceneNode, css: FieldCSS, coversInset: boolean): StrokeCSS {
-  const stroke = node.strokes.at(0)
+  const index = node.strokes.findIndex((candidate) => candidate.visible)
+  const stroke = index === -1 ? undefined : node.strokes[index]
   const literalColor = strokeColorToCSS(stroke)
   if (!literalColor || !stroke) return NONE
-  const color = css('strokes/0/color', literalColor)
+  const color = css(`strokes/${index}/color`, literalColor)
   const weights = strokeWeights(node, stroke, css)
   const dashed = node.dashPattern.length > 0
   if (node.type === 'LINE' && 'uniform' in weights)
     return lineStroke(weights.uniform, color, dashed)
-  if (takesSpace(node)) return { style: border(weights, color, dashed), shadows: [] }
+  if (strokeInLayout(node)) return { style: border(weights, color, dashed), shadows: [] }
   if (dashed || (coversInset && stroke.align !== 'OUTSIDE')) {
     const style =
       'uniform' in weights

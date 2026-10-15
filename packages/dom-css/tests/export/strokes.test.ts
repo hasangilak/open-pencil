@@ -157,6 +157,25 @@ describe('strokes in DOM/CSS export', () => {
     expect(placed['box-shadow']).toBe('inset 0 0 0 2px #FF0000')
   })
 
+  it('leaves center and outside strokes out of layout, as Figma does', () => {
+    const included = (align: Stroke['align']) =>
+      styleOf({ strokes: [stroke(align)], layoutMode: 'VERTICAL', strokesIncludedInLayout: true })
+    expect(roomTaken(included('CENTER'))).toEqual([])
+    expect(included('CENTER')['box-shadow']).toBe('inset 0 0 0 1px #FF0000, 0 0 0 1px #FF0000')
+    expect(roomTaken(included('OUTSIDE'))).toEqual([])
+    expect(included('OUTSIDE')['box-shadow']).toBe('0 0 0 2px #FF0000')
+  })
+
+  it('draws the first visible stroke, past hidden ones', () => {
+    const hidden = { ...stroke('INSIDE', 6), visible: false }
+    const style = styleOf({
+      strokes: [hidden, stroke('INSIDE')],
+      layoutMode: 'HORIZONTAL',
+      strokesIncludedInLayout: true
+    })
+    expect(style.border).toBe('2px solid #FF0000')
+  })
+
   it('draws dashes as an outline offset as far in as the stroke is aligned', () => {
     const dashed = (align: Stroke['align']) =>
       styleOf({ strokes: [stroke(align)], dashPattern: [6, 4] })

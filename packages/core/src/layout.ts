@@ -4,7 +4,6 @@ import {
   Display,
   FlexDirection,
   Gutter,
-  Edge,
   MeasureMode,
   Overflow,
   Wrap,
@@ -43,6 +42,7 @@ import {
 
 import { estimateTextSize, getTextMeasurer } from './layout/text-measurement'
 import {
+  applyContainerInsets,
   applyMinMaxConstraints,
   applyLockedAspectRatio,
   configureAbsoluteChild,
@@ -203,10 +203,7 @@ function configureFlexContainer(
     yogaNode.setAlignContent(Align.SpaceBetween)
   }
 
-  yogaNode.setPadding(Edge.Top, node.paddingTop)
-  yogaNode.setPadding(Edge.Right, node.paddingRight)
-  yogaNode.setPadding(Edge.Bottom, node.paddingBottom)
-  yogaNode.setPadding(Edge.Left, node.paddingLeft)
+  applyContainerInsets(yogaNode, node)
 
   const primaryGap = node.primaryAxisAlign === 'SPACE_BETWEEN' ? 0 : node.itemSpacing
   yogaNode.setGap(
@@ -242,10 +239,7 @@ function configureChildAsGrid(
   yogaChild.setGap(Gutter.Column, child.gridColumnGap)
   yogaChild.setGap(Gutter.Row, child.gridRowGap)
 
-  yogaChild.setPadding(Edge.Top, child.paddingTop)
-  yogaChild.setPadding(Edge.Right, child.paddingRight)
-  yogaChild.setPadding(Edge.Bottom, child.paddingBottom)
-  yogaChild.setPadding(Edge.Left, child.paddingLeft)
+  applyContainerInsets(yogaChild, child)
 
   const isParentRow = parent.layoutMode === 'HORIZONTAL'
   const selfOverride = child.layoutAlignSelf !== 'AUTO'

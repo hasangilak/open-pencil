@@ -10,6 +10,7 @@ import Yoga, {
 import {
   enforcedAspectRatio,
   layoutSizingInParent,
+  layoutStrokeWeights,
   type GridTrack,
   type SceneGraph,
   type SceneNode
@@ -81,6 +82,20 @@ export function applyLockedAspectRatio(
   yogaNode.setAspectRatio(ratio)
   if (drivesWidth) yogaNode.setHeight('auto')
   else yogaNode.setWidth('auto')
+}
+
+/** A container's padding, and the stroke its layout includes as a border inside it. */
+export function applyContainerInsets(yogaNode: YogaNode, node: SceneNode): void {
+  yogaNode.setPadding(Edge.Top, node.paddingTop)
+  yogaNode.setPadding(Edge.Right, node.paddingRight)
+  yogaNode.setPadding(Edge.Bottom, node.paddingBottom)
+  yogaNode.setPadding(Edge.Left, node.paddingLeft)
+  const stroke = layoutStrokeWeights(node)
+  if (!stroke) return
+  yogaNode.setBorder(Edge.Top, stroke.top)
+  yogaNode.setBorder(Edge.Right, stroke.right)
+  yogaNode.setBorder(Edge.Bottom, stroke.bottom)
+  yogaNode.setBorder(Edge.Left, stroke.left)
 }
 
 export function applyMinMaxConstraints(yogaNode: YogaNode, node: SceneNode): void {

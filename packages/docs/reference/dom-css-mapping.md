@@ -70,13 +70,13 @@ HTML export, Tailwind HTML, and Tailwind JSX (`sceneNodesToTailwindJSX`) share o
 
 ### Strokes
 
-A layer's first visible stroke is drawn where the design draws it, and it takes no room unless the design gives it room. The canvas and Figma never lay out a stroke unless it is included in an auto layout frame's layout. A CSS border always takes room: it would move content inward by the weight and narrow it by twice the weight.
+A layer's first visible stroke is drawn where the design draws it, and it takes no room unless the design gives it room. The canvas and Figma lay out a stroke only when it is an inside stroke that an auto layout frame includes in its layout. A CSS border always takes room: it would move content inward by the weight and narrow it by twice the weight.
 
 | SceneGraph | CSS | Notes |
 |---|---|---|
 | stroke | `box-shadow` spread | Inside is `inset 0 0 0 <weight>`, outside is `0 0 0 <weight>`, and center is half of each. It follows corner radii, keeps weights under a pixel, paints beneath the layer's children as the canvas and Figma do, and leaves focus outlines alone. It sits beneath inner shadows and above drop shadows. Tailwind writes it as `shadow-[…]`. |
 | independent stroke weights | `box-shadow` bands | Each side is a shadow moved off that side by its weight, such as `inset 0 1px 0 0` for a top inside stroke. Equal sides are one ring. |
-| stroke included in an auto layout frame's layout (`strokesIncludedInLayout`) | `border`, `box-sizing: border-box` | Figma's included strokes behave like `border-box`: children sit inside the stroke. The canvas does not lay out included strokes yet, so its children sit on the stroke where the export's do not. |
+| inside stroke included in an auto layout frame's layout (`strokesIncludedInLayout`) | `border`, `box-sizing: border-box` | Figma's included strokes behave like `border-box`: children sit inside the stroke on the canvas and in the export, and a hugging frame grows by the weights. A center or outside stroke never takes room, even when included, so it stays a shadow. |
 | dashed stroke | `outline`, `outline-offset` | No shadow draws dashes. The offset is `-weight` inside, `-weight/2` center, and none outside. CSS dash lengths do not follow `dashPattern`, and an outline paints above the layer's children. Dashed independent weights are a border, which takes room, since neither an outline nor a shadow draws them. |
 | stroke of an image or a shader layer | `outline`, `outline-offset` | The image or the shader's canvas would cover an inset shadow. Outside strokes stay shadows. Independent weights are a border. |
 | line | `box-shadow: 0 0 0 <weight/2>` | A line has no inside or height: half the weight spreads to either side, and past the ends as a square cap would. A dashed line is its top border. |
